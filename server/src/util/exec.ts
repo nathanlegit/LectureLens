@@ -6,9 +6,9 @@ export interface ExecResult {
 }
 
 /** Runs a command to completion. Rejects with the tail of stderr on a non-zero exit. */
-export function run(cmd: string, args: string[]): Promise<ExecResult> {
+export function run(cmd: string, args: string[], env?: Record<string, string>): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"], env: env ? { ...process.env, ...env } : process.env });
     const out: Buffer[] = [];
     let err = "";
     child.stdout.on("data", (d: Buffer) => out.push(d));

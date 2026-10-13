@@ -57,11 +57,25 @@ export async function exportSeed(db: DB, dataDir: string, lectureId: string, out
   try {
     writeFileSync(join(staging, "seed.json"), JSON.stringify(seed));
     // Only what the deployed app serves: no audio, samples or debugging pages.
-    await run("tar", ["-cf", outFile, "-C", staging, "seed.json", "-C", resolve(dataDir, lectureId), "video.mp4", "frames"]); // absolute: a second -C is relative to the first
+    // Absolute path: a second -C is relative to the first. COPYFILE_DISABLE stops macOS tar adding
+    // AppleDouble "._*" metadata files, which Linux tar would unpack as real files.
+    await run("tar", ["-cf", outFile, "-C", staging, "seed.json", "-C", resolve(dataDir, lectureId), "video.mp4", "frames"], {
+      COPYFILE_DISABLE: "1",
+    });
   } finally {
     rmSync(staging, { recursive: true, force: true });
   }
   return outFile;
+}
+
+/** Deletes macOS AppleDouble "._*" metadata files that archives made on a Mac can carry. */
+function removeAppleDouble(dir: string) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    const st = lstatSync(path);
+    if (name.startsWith("._") && (st.isFile() || st.isSymbolicLink())) rmSync(path);
+    else if (st.isDirectory()) removeAppleDouble(path);
+  }
 }
 
 /** Rejects anything but plain files and directories, with only the expected names. */
@@ -88,6 +102,7 @@ export async function importSeed(db: DB, dataDir: string, archivePath: string): 
   try {
     mkdirSync(work, { recursive: true });
     await run("tar", ["-xf", archivePath, "-C", work, "--no-same-owner"]);
+    removeAppleDouble(work);
     const seed = SeedSchema.parse(JSON.parse(readFileSync(join(work, "seed.json"), "utf8")));
     checkExtracted(work, new Set(seed.frames.map((f) => f.id)));
 
