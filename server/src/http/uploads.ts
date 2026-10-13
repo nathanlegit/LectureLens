@@ -25,6 +25,8 @@ const byteLimit = (max: number) => {
 };
 
 const NewModule = z.object({ name: z.string().trim().min(1).max(120) });
+const Week = z.coerce.number().int().min(1).max(60);
+const LectureEdit = z.object({ title: z.string().trim().min(1).max(200).optional(), week: Week.nullable().optional() });
 
 /** Writes: create modules, upload recordings, retry failed lectures. All behind the passcode. */
 export function uploadRoutes(db: DB, dataDir: string) {
@@ -44,6 +46,8 @@ export function uploadRoutes(db: DB, dataDir: string) {
     const moduleId = c.req.param("moduleId");
     if (!db.prepare("SELECT 1 FROM modules WHERE id = ?").get(moduleId)) return c.json({ error: "Module not found" }, 404);
     const title = (c.req.query("title") ?? "").trim().slice(0, 200) || "Untitled lecture";
+    const weekParsed = Week.safeParse(c.req.query("week"));
+    const week = weekParsed.success ? weekParsed.data : null;
     const maxBytes = config.MAX_UPLOAD_MB * 1024 ** 2;
     const declared = Number(c.req.header("content-length") ?? 0);
     if (declared > maxBytes) return c.json({ error: `Recordings are limited to ${config.MAX_UPLOAD_MB} MB` }, 413);
@@ -61,7 +65,7 @@ export function uploadRoutes(db: DB, dataDir: string) {
       return c.json({ error: "The upload was interrupted. Try again." }, 400);
     }
     // Only now does the lecture exist for the job runner: it never sees a half-written file.
-    db.prepare("INSERT INTO lectures (id, moduleId, title, status) VALUES (?, ?, ?, 'queued')").run(id, moduleId, title);
+    db.prepare("INSERT INTO lectures (id, moduleId, title, status, week) VALUES (?, ?, ?, 'queued', ?)").run(id, moduleId, title, week);
     return c.json({ id, title });
   });
 
@@ -76,6 +80,30 @@ export function uploadRoutes(db: DB, dataDir: string) {
       return c.json({ error: "The uploaded file is gone; upload the recording again" }, 409);
     }
     db.prepare("UPDATE lectures SET status = failedStage, failedStage = NULL, error = NULL WHERE id = ?").run(id);
+    return c.json({ ok: true });
+  });
+
+  // Rename a lecture or move it to another week.
+  app.post("/lectures/:id", async (c) => {
+    const id = c.req.param("id");
+    const parsed = LectureEdit.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Invalid title or week" }, 400);
+    if (!db.prepare("SELECT 1 FROM lectures WHERE id = ?").get(id)) return c.json({ error: "Lecture not found" }, 404);
+    const { title, week } = parsed.data;
+    if (title !== undefined) db.prepare("UPDATE lectures SET title = ? WHERE id = ?").run(title, id);
+    if (week !== undefined) db.prepare("UPDATE lectures SET week = ? WHERE id = ?").run(week, id);
+    return c.json({ ok: true });
+  });
+
+  app.post("/lectures/:id/delete", (c) => {
+    const id = c.req.param("id");
+    const row = db.prepare("SELECT status FROM lectures WHERE id = ?").get(id) as { status: string } | undefined;
+    if (!row) return c.json({ error: "Lecture not found" }, 404);
+    if (!["ready", "failed", "queued"].includes(row.status)) {
+      return c.json({ error: "This lecture is being processed. Wait for it to finish, then delete it." }, 409);
+    }
+    db.prepare("DELETE FROM lectures WHERE id = ?").run(id); // cascades to its rows
+    rmSync(join(dataDir, id), { recursive: true, force: true });
     return c.json({ ok: true });
   });
 

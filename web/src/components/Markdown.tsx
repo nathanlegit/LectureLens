@@ -19,20 +19,22 @@ export function CitationChip({ id }: { id: string }) {
       type="button"
       onClick={() => playerBus.seek(sec)}
       title={`Jump to ${formatTime(sec)} (${id})`}
-      className="mx-0.5 inline-flex translate-y-[-1px] items-center rounded-full bg-indigo-50 px-1.5 py-px align-baseline font-mono text-[0.75em] font-medium text-indigo-700 no-underline ring-1 ring-indigo-200 transition hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:ring-indigo-800 dark:hover:bg-indigo-900"
+      className="mx-0.5 inline-flex translate-y-[-1px] items-center rounded-full bg-accent-soft px-1.5 py-px align-baseline font-mono text-[0.75em] font-medium text-accent no-underline ring-1 ring-accent-soft transition hover:bg-accent-soft"
     >
       {formatTime(sec)}
     </button>
   );
 }
 
-export function Markdown({ children, className = "" }: { children: string; className?: string }) {
+export function Markdown({ children, className = "", inline = false }: { children: string; className?: string; inline?: boolean }) {
+  const Wrapper = inline ? "span" : "div";
   return (
-    <div className={`prose prose-stone prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-pre:my-2 ${className}`}>
+    <Wrapper className={inline ? className : `prose prose-stone prose-sm max-w-none prose-p:my-2 prose-pre:my-2 ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
+          ...(inline ? { p: ({ children: c }) => <span>{c}</span> } : {}),
           a: ({ href, children: label }) =>
             href?.startsWith("#cite-") ? (
               <CitationChip id={href.slice(6)} />
@@ -45,6 +47,6 @@ export function Markdown({ children, className = "" }: { children: string; class
       >
         {withCitationLinks(children)}
       </ReactMarkdown>
-    </div>
+    </Wrapper>
   );
 }

@@ -6,6 +6,7 @@ import { loadLectureContext, timelineSystem, type LectureContext } from "../llm/
 import type { StageFn } from "./types.ts";
 
 const ChaptersSchema = z.object({
+  overview: z.string(),
   chapters: z.array(z.object({ title: z.string(), startBlockId: z.string(), summary: z.string() })),
 });
 type ChaptersOutput = z.infer<typeof ChaptersSchema>;
@@ -13,7 +14,8 @@ type ChaptersOutput = z.infer<typeof ChaptersSchema>;
 const INSTRUCTIONS = `Split this lecture into 5 to 12 chapters, in order, so a student can see in two minutes what it covered.
 - Each chapter starts at a block: give that block's ID as startBlockId. The first chapter starts at the first block.
 - Title: a few words naming the topic, as the lecturer would ("Row picture of 2x2 systems"), not "Introduction" or "Part 2".
-- Summary: 1 to 2 sentences on what is taught, including the key equation or result if there is one (LaTeX in $...$).`;
+- Summary: 1 to 2 sentences on what is taught, including the key equation or result if there is one (LaTeX in $...$).
+Also write "overview": 2 to 4 sentences on the whole lecture for a student deciding whether to watch it: the problem it tackles, the main ideas in order, and the key result (LaTeX in $...$). No citations.`;
 
 /** Returns a list of problems, empty when the chapters are usable. */
 export function checkChapters(out: ChaptersOutput, ctx: LectureContext): string[] {
@@ -78,6 +80,7 @@ export const chapter: StageFn = async ({ lecture, db, progress, log }) => {
       const endSec = next ? ctx.byId.get(next.startBlockId)!.startSec : ctx.durationSec;
       insert.run(randomUUID(), lecture.id, i, c.title, c.startBlockId, startSec, endSec, c.summary);
     });
+    db.prepare("UPDATE lectures SET summary = ? WHERE id = ?").run(out.overview, lecture.id);
   })();
   log(`${out.chapters.length} chapters`);
   progress(1, 1);

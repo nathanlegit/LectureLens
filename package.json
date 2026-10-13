@@ -16,7 +16,8 @@
     "dev:web": "npm run dev -w web",
     "build": "npm run build -w web",
     "seed": "tsx --env-file=.env server/src/cli/seed.ts",
-    "start": "tsx server/src/index.ts"
+    "start": "tsx server/src/index.ts",
+    "eval:guide": "tsx --env-file=.env server/src/cli/eval-guide.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

@@ -18,6 +18,12 @@ const MIGRATIONS: ((db: DB) => void)[] = [
       ALTER TABLE messages ADD COLUMN mode TEXT NOT NULL DEFAULT 'tell';
       ALTER TABLE quiz_questions ADD COLUMN misconceptions TEXT NOT NULL DEFAULT '[]';
     `),
+  // 3: Notion-style organisation (lectures grouped by week) and a lecture-level overview for the Summary tab.
+  (db) =>
+    db.exec(`
+      ALTER TABLE lectures ADD COLUMN week INTEGER;
+      ALTER TABLE lectures ADD COLUMN summary TEXT;
+    `),
 ];
 
 export function migrate(db: DB) {

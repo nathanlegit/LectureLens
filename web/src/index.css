@@ -1,12 +1,96 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-@theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+/*
+ * Design tokens: the one place to restyle the app. Components use only these names
+ * (bg-bg, bg-sidebar, text-ink, text-muted, border-line, bg-accent, ...), never raw colours.
+ * Values are a neutral, Notion-like placeholder until the design pass.
+ */
+:root {
+  --ll-bg: #ffffff;
+  --ll-sidebar: #f7f7f5;
+  --ll-surface: #ffffff;
+  --ll-hover: rgb(55 53 47 / 0.06);
+  --ll-line: rgb(55 53 47 / 0.12);
+  --ll-ink: #37352f;
+  --ll-muted: rgb(55 53 47 / 0.65);
+  --ll-faint: rgb(55 53 47 / 0.42);
+  --ll-accent: #2383e2;
+  --ll-accent-soft: rgb(35 131 226 / 0.1);
+  --ll-on-accent: #ffffff;
+  --ll-ok: #448361;
+  --ll-ok-soft: rgb(68 131 97 / 0.1);
+  --ll-bad: #d44c47;
+  --ll-bad-soft: rgb(212 76 71 / 0.08);
+  --ll-warn: #b7791f;
+  --ll-warn-soft: rgb(203 145 47 / 0.12);
+  --ll-radius: 6px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ll-bg: #191919;
+    --ll-sidebar: #202020;
+    --ll-surface: #252525;
+    --ll-hover: rgb(255 255 255 / 0.055);
+    --ll-line: rgb(255 255 255 / 0.094);
+    --ll-ink: rgb(255 255 255 / 0.81);
+    --ll-muted: rgb(255 255 255 / 0.55);
+    --ll-faint: rgb(255 255 255 / 0.35);
+    --ll-accent: #529cca;
+    --ll-accent-soft: rgb(82 156 202 / 0.16);
+    --ll-ok: #4dab9a;
+    --ll-ok-soft: rgb(77 171 154 / 0.14);
+    --ll-bad: #ff7369;
+    --ll-bad-soft: rgb(255 115 105 / 0.12);
+    --ll-warn: #ffa344;
+    --ll-warn-soft: rgb(255 163 68 / 0.14);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--ll-bg);
+  --color-sidebar: var(--ll-sidebar);
+  --color-surface: var(--ll-surface);
+  --color-hover: var(--ll-hover);
+  --color-line: var(--ll-line);
+  --color-ink: var(--ll-ink);
+  --color-muted: var(--ll-muted);
+  --color-faint: var(--ll-faint);
+  --color-accent: var(--ll-accent);
+  --color-accent-soft: var(--ll-accent-soft);
+  --color-on-accent: var(--ll-on-accent);
+  --color-ok: var(--ll-ok);
+  --color-ok-soft: var(--ll-ok-soft);
+  --color-bad: var(--ll-bad);
+  --color-bad-soft: var(--ll-bad-soft);
+  --color-warn: var(--ll-warn);
+  --color-warn-soft: var(--ll-warn-soft);
+  --radius-ui: var(--ll-radius);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 body {
-  @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
+  background: var(--ll-bg);
+  color: var(--ll-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Rendered answers, summaries and notes follow the tokens too. */
+.prose {
+  --tw-prose-body: var(--ll-ink);
+  --tw-prose-headings: var(--ll-ink);
+  --tw-prose-bold: var(--ll-ink);
+  --tw-prose-links: var(--ll-accent);
+  --tw-prose-code: var(--ll-ink);
+  --tw-prose-bullets: var(--ll-faint);
+  --tw-prose-counters: var(--ll-muted);
+  --tw-prose-hr: var(--ll-line);
+  --tw-prose-quotes: var(--ll-ink);
+  --tw-prose-pre-bg: var(--ll-hover);
+  --tw-prose-pre-code: var(--ll-ink);
 }
 
 /* Display maths can be wider than the answer column on a phone: scroll it, not the page. */

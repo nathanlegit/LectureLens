@@ -1,15 +1,32 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Chapter, ChatMessage } from "@lecture-lens/shared";
+import type { AskMode, Chapter, ChatMessage } from "@lecture-lens/shared";
 import { askStream, getJSON } from "../lib/api";
 import { FrameStrip } from "./FrameStrip";
 import { Markdown } from "./Markdown";
 
 interface Pending {
   question: string;
+  mode: AskMode;
   answer: string;
   cited: string[];
   error: string | null;
+}
+
+const MODES: { id: AskMode; label: string; hint: string }[] = [
+  { id: "tell", label: "Just tell me", hint: "A direct answer, cited to the board" },
+  { id: "guide", label: "Guide me", hint: "Hints that point at the board, so you work it out" },
+];
+const NEXT_HINT = "Give me the next hint.";
+const REVEAL = "Just tell me the answer.";
+const MODE_KEY = "lecture-lens-ask-mode";
+
+function savedMode(): AskMode {
+  try {
+    return localStorage.getItem(MODE_KEY) === "guide" ? "guide" : "tell";
+  } catch {
+    return "tell";
+  }
 }
 
 export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: Chapter[] }) {
@@ -21,20 +38,30 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
   });
   const [pending, setPending] = useState<Pending | null>(null);
   const [input, setInput] = useState("");
+  const [mode, setModeState] = useState<AskMode>(savedMode);
   const bottom = useRef<HTMLDivElement>(null);
   const streaming = pending !== null && pending.error === null;
+
+  const setMode = (m: AskMode) => {
+    setModeState(m);
+    try {
+      localStorage.setItem(MODE_KEY, m);
+    } catch {
+      // not remembered; fine
+    }
+  };
 
   // Braces matter: scrollIntoView returns a Promise in current browsers, and an effect must not return one.
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [messages.length, pending?.answer]);
 
-  async function submit(question: string) {
+  async function submit(question: string, askMode: AskMode = mode) {
     question = question.trim();
     if (!question || streaming) return;
     setInput("");
-    setPending({ question, answer: "", cited: [], error: null });
-    await askStream(lectureId, question, (e) => {
+    setPending({ question, mode: askMode, answer: "", cited: [], error: null });
+    await askStream(lectureId, question, askMode, (e) => {
       setPending((p) => {
         if (!p) return p;
         if (e.type === "text") return { ...p, answer: p.answer + e.text };
@@ -53,6 +80,8 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
     void submit(input);
   };
 
+  const last = messages.at(-1);
+  const offerLadder = !pending && last?.role === "assistant" && last.mode === "guide";
   const suggestions = chapters.slice(1, 4).map((c) => `Explain “${c.title}”`);
 
   return (
@@ -60,7 +89,7 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {messages.length === 0 && !pending && (
           <div className="py-6 text-center">
-            <p className="text-sm text-stone-500">
+            <p className="text-sm text-muted">
               Ask anything about this lecture. Answers cite the moment and the board, and every chip jumps the video there.
             </p>
             <div className="mt-4 flex flex-col items-center gap-2">
@@ -69,7 +98,7 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
                   key={s}
                   type="button"
                   onClick={() => void submit(s)}
-                  className="rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 transition hover:border-indigo-400 hover:text-indigo-700 dark:border-stone-700 dark:text-stone-300 dark:hover:text-indigo-300"
+                  className="rounded-full border border-line px-3 py-1.5 text-sm text-ink transition hover:border-accent hover:text-accent"
                 >
                   {s}
                 </button>
@@ -80,7 +109,7 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 
         {messages.map((m) =>
           m.role === "user" ? (
-            <Question key={m.id} text={m.content} />
+            <Question key={m.id} text={m.content} mode={m.mode} />
           ) : (
             <Answer key={m.id} lectureId={lectureId} text={m.content} cited={m.citations.map((c) => c.id)} />
           ),
@@ -88,14 +117,16 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 
         {pending && (
           <>
-            <Question text={pending.question} />
+            <Question text={pending.question} mode={pending.mode} />
             {pending.answer ? (
               <Answer lectureId={lectureId} text={pending.answer} cited={pending.cited} />
             ) : (
-              !pending.error && <p className="animate-pulse text-sm text-stone-500">Reading the lecture…</p>
+              !pending.error && (
+                <p className="animate-pulse text-sm text-muted">{pending.mode === "guide" ? "Finding the right hint…" : "Reading the lecture…"}</p>
+              )
             )}
             {pending.error && (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              <p role="alert" className="text-sm text-bad">
                 {pending.error}{" "}
                 <button type="button" className="underline" onClick={() => setPending(null)}>
                   Dismiss
@@ -104,40 +135,79 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
             )}
           </>
         )}
+
+        {offerLadder && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void submit(NEXT_HINT, "guide")}
+              className="rounded-full border border-accent px-3 py-1.5 text-sm text-accent transition hover:bg-accent-soft"
+            >
+              Show me more
+            </button>
+            <button
+              type="button"
+              onClick={() => void submit(REVEAL, "guide")}
+              className="rounded-full border border-line px-3 py-1.5 text-sm text-muted transition hover:border-faint"
+            >
+              Just tell me
+            </button>
+          </div>
+        )}
         <div ref={bottom} />
       </div>
 
-      <form onSubmit={onSubmit} className="flex gap-2 border-t border-stone-200 p-3 dark:border-stone-800">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void submit(input);
-            }
-          }}
-          rows={1}
-          placeholder="Ask about this lecture…"
-          aria-label="Your question"
-          className="max-h-32 min-h-10 flex-1 resize-none rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-stone-700 dark:bg-stone-900"
-        />
-        <button
-          type="submit"
-          disabled={streaming || !input.trim()}
-          className="rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-40"
-        >
-          Ask
-        </button>
-      </form>
+      <div className="border-t border-line p-3">
+        <div role="radiogroup" aria-label="Answer style" className="mb-2 inline-flex rounded-ui bg-hover p-0.5 text-xs">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="radio"
+              aria-checked={mode === m.id}
+              title={m.hint}
+              onClick={() => setMode(m.id)}
+              className={`rounded-md px-2.5 py-1 font-medium transition ${
+                mode === m.id ? "bg-surface text-accent shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <form onSubmit={onSubmit} className="flex gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void submit(input);
+              }
+            }}
+            rows={1}
+            placeholder={mode === "guide" ? "Ask, or try an answer…" : "Ask about this lecture…"}
+            aria-label="Your question"
+            className="max-h-32 min-h-10 flex-1 resize-none rounded-ui border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
+          />
+          <button
+            type="submit"
+            disabled={streaming || !input.trim()}
+            className="rounded-ui bg-accent px-4 text-sm font-medium text-on-accent transition hover:opacity-90 disabled:opacity-40"
+          >
+            Ask
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
-function Question({ text }: { text: string }) {
+function Question({ text, mode }: { text: string; mode: AskMode }) {
   return (
-    <div className="flex justify-end">
-      <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-stone-200 px-3.5 py-2 text-sm dark:bg-stone-800">{text}</p>
+    <div className="flex flex-col items-end gap-1">
+      {mode === "guide" && <span className="text-[11px] font-medium tracking-wide text-accent uppercase">Guide me</span>}
+      <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-hover px-3.5 py-2 text-sm">{text}</p>
     </div>
   );
 }

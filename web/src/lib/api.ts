@@ -1,4 +1,4 @@
-import type { AskEvent } from "@lecture-lens/shared";
+import type { AskEvent, AskMode } from "@lecture-lens/shared";
 
 export async function getJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -7,11 +7,11 @@ export async function getJSON<T>(url: string): Promise<T> {
 }
 
 /** POSTs a question and calls `onEvent` for each server-sent event until the stream ends. */
-export async function askStream(lectureId: string, question: string, onEvent: (e: AskEvent) => void, signal?: AbortSignal) {
+export async function askStream(lectureId: string, question: string, mode: AskMode, onEvent: (e: AskEvent) => void, signal?: AbortSignal) {
   const res = await fetch(`/api/lectures/${lectureId}/ask`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, mode }),
     signal,
   });
   if (!res.ok || !res.body) {
@@ -39,6 +39,13 @@ export async function askStream(lectureId: string, question: string, onEvent: (e
       if (data) onEvent(JSON.parse(data) as AskEvent);
     }
   }
+}
+
+export async function postJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url, { method: "POST" });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.error ?? `Request failed (${res.status})`);
+  return json as T;
 }
 
 export const frameUrl = (lectureId: string, frameId: string) => `/media/${lectureId}/frames/${frameId}.jpg`;
@@ -100,12 +107,12 @@ export async function postWrite<T>(path: string, body?: unknown): Promise<T> {
 }
 
 /** XMLHttpRequest rather than fetch: fetch cannot report upload progress. */
-export function uploadLecture(moduleId: string, file: File, title: string, onProgress: (fraction: number) => void) {
+export function uploadLecture(moduleId: string, file: File, title: string, week: number | null, onProgress: (fraction: number) => void) {
   const passcode = getPasscode();
   if (!passcode) return Promise.reject(new ApiError("A passcode is needed to upload."));
   return new Promise<{ id: string }>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `/api/write/modules/${moduleId}/lectures?title=${encodeURIComponent(title)}`);
+    xhr.open("POST", `/api/write/modules/${moduleId}/lectures?title=${encodeURIComponent(title)}${week === null ? "" : `&week=${week}`}`);
     xhr.setRequestHeader("x-passcode", passcode);
     xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);

@@ -14,7 +14,13 @@ const FRAME_ID = /^F\d{2,3}$/;
 const SeedSchema = z.object({
   format: z.literal(1),
   module: z.object({ id: z.string().regex(LECTURE_ID), name: z.string(), glossary: z.string().nullable() }),
-  lecture: z.object({ id: z.string().regex(LECTURE_ID), title: z.string(), durationSec: z.number() }),
+  lecture: z.object({
+    id: z.string().regex(LECTURE_ID),
+    title: z.string(),
+    durationSec: z.number(),
+    week: z.number().int().nullable().default(null),
+    summary: z.string().nullable().default(null),
+  }),
   segments: z.array(z.object({ startSec: z.number(), endSec: z.number(), text: z.string() })),
   frames: z.array(
     z.object({ id: z.string().regex(FRAME_ID), atSec: z.number(), kind: z.string(), hash: z.string().nullable(), description: z.string().nullable() }),
@@ -35,8 +41,8 @@ type Seed = z.infer<typeof SeedSchema>;
 
 /** Writes an uncompressed .tar (the video is already compressed) and returns its path. */
 export async function exportSeed(db: DB, dataDir: string, lectureId: string, outFile: string): Promise<string> {
-  const lecture = db.prepare("SELECT id, moduleId, title, durationSec, status FROM lectures WHERE id = ?").get(lectureId) as
-    | { id: string; moduleId: string; title: string; durationSec: number; status: string }
+  const lecture = db.prepare("SELECT id, moduleId, title, durationSec, status, week, summary FROM lectures WHERE id = ?").get(lectureId) as
+    | { id: string; moduleId: string; title: string; durationSec: number; status: string; week: number | null; summary: string | null }
     | undefined;
   if (!lecture) throw new Error(`Lecture ${lectureId} not found`);
   if (lecture.status !== "ready") throw new Error(`Lecture ${lectureId} is not ready (status: ${lecture.status})`);
@@ -44,7 +50,7 @@ export async function exportSeed(db: DB, dataDir: string, lectureId: string, out
   const seed: Seed = {
     format: 1,
     module: db.prepare("SELECT id, name, glossary FROM modules WHERE id = ?").get(lecture.moduleId) as Seed["module"],
-    lecture: { id: lecture.id, title: lecture.title, durationSec: lecture.durationSec },
+    lecture: { id: lecture.id, title: lecture.title, durationSec: lecture.durationSec, week: lecture.week, summary: lecture.summary },
     segments: db.prepare("SELECT startSec, endSec, text FROM transcript_segments WHERE lectureId = ? ORDER BY startSec").all(lectureId) as Seed["segments"],
     frames: db.prepare("SELECT id, atSec, kind, hash, description FROM frames WHERE lectureId = ? ORDER BY atSec").all(lectureId) as Seed["frames"],
     chapters: db
@@ -121,8 +127,8 @@ export async function importSeed(db: DB, dataDir: string, archivePath: string): 
       // Cascades to segments, frames, chapters, messages and quiz questions of an older copy.
       db.prepare("DELETE FROM lectures WHERE id = ?").run(id);
       db.prepare(
-        "INSERT INTO lectures (id, moduleId, title, videoPath, durationSec, status, isSeed) VALUES (?, ?, ?, ?, ?, 'ready', 1)",
-      ).run(id, seed.module.id, seed.lecture.title, join(target, "video.mp4"), seed.lecture.durationSec);
+        "INSERT INTO lectures (id, moduleId, title, videoPath, durationSec, status, isSeed, week, summary) VALUES (?, ?, ?, ?, ?, 'ready', 1, ?, ?)",
+      ).run(id, seed.module.id, seed.lecture.title, join(target, "video.mp4"), seed.lecture.durationSec, seed.lecture.week, seed.lecture.summary);
       const seg = db.prepare("INSERT INTO transcript_segments (lectureId, startSec, endSec, text) VALUES (?, ?, ?, ?)");
       for (const s of seed.segments) seg.run(id, s.startSec, s.endSec, s.text);
       const frame = db.prepare("INSERT INTO frames (lectureId, id, atSec, kind, hash, imagePath, description) VALUES (?, ?, ?, ?, ?, ?, ?)");
