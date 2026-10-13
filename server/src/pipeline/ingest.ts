@@ -23,7 +23,9 @@ export const ingest: StageFn = async ({ lecture, db, dir, progress, log }) => {
     throw new Error("No uploaded file found");
   }
 
-  const probe = await ffprobe(source);
+  const probe = await ffprobe(source).catch(() => {
+    throw new Error("This file isn't a video that can be read. Upload an MP4 (or another common video format).");
+  });
   if (!probe.video) throw new Error("The file has no video stream");
   if (!probe.audio) throw new Error("The file has no audio stream");
   if (probe.durationSec > MAX_DURATION_SEC) throw new Error(`Recording is longer than ${MAX_DURATION_SEC / 60} minutes`);

@@ -9,6 +9,8 @@ import { openDb } from "./db/db.ts";
 import { adminRoutes } from "./http/admin.ts";
 import { apiRoutes } from "./http/api.ts";
 import { mediaRoutes } from "./http/media.ts";
+import { uploadRoutes } from "./http/uploads.ts";
+import { startJobRunner } from "./jobs/runner.ts";
 
 const db = openDb(config.DATA_DIR);
 const app = new Hono();
@@ -16,6 +18,7 @@ app.use("/api/*", logger());
 
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/admin", adminRoutes(db, config.DATA_DIR));
+app.route("/api/write", uploadRoutes(db, config.DATA_DIR));
 app.route("/api", apiRoutes(db));
 app.route("/media", mediaRoutes(config.DATA_DIR));
 
@@ -29,6 +32,8 @@ if (existsSync(webDist)) {
     return c.html(readFileSync(resolve(webDist, "index.html"), "utf8"));
   });
 }
+
+startJobRunner(db, config.DATA_DIR);
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   console.log(`Lecture Lens server on http://localhost:${info.port}`);
