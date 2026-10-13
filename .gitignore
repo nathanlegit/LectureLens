@@ -6,3 +6,4 @@ data/
 .DS_Store
 models/
 demo/
+seed-*.tar

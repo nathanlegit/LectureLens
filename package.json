@@ -14,7 +14,9 @@
     "ask": "tsx --env-file=.env server/src/cli/ask.ts",
     "dev:server": "tsx watch --env-file=.env server/src/index.ts",
     "dev:web": "npm run dev -w web",
-    "build": "npm run build -w web"
+    "build": "npm run build -w web",
+    "seed": "tsx --env-file=.env server/src/cli/seed.ts",
+    "start": "tsx server/src/index.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

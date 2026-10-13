@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { config } from "./config.ts";
 import { openDb } from "./db/db.ts";
+import { adminRoutes } from "./http/admin.ts";
 import { apiRoutes } from "./http/api.ts";
 import { mediaRoutes } from "./http/media.ts";
 
@@ -13,6 +14,8 @@ const db = openDb(config.DATA_DIR);
 const app = new Hono();
 app.use("/api/*", logger());
 
+app.get("/api/health", (c) => c.json({ ok: true }));
+app.route("/api/admin", adminRoutes(db, config.DATA_DIR));
 app.route("/api", apiRoutes(db));
 app.route("/media", mediaRoutes(config.DATA_DIR));
 

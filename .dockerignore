@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+web/dist
+data
+demo
+models
+seed-*.tar
+.env
+.git
+*.log
+.DS_Store
