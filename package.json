@@ -1,0 +1,32 @@
+{
+  "name": "lecture-lens",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p server --noEmit",
+    "pipeline": "tsx --env-file=.env server/src/cli/pipeline.ts",
+    "ask": "tsx --env-file=.env server/src/cli/ask.ts",
+    "dev:server": "tsx watch --env-file=.env server/src/index.ts",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w web"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true,
+    "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "katex": "^0.19.0",
+    "postcss-selector-parser": "^7.1.6"
+  }
+}
