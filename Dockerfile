@@ -23,4 +23,5 @@ ENV NODE_ENV=production \
     DATA_DIR=/data \
     TRANSCRIBER=groq
 
-CMD ["npm", "start"]
+# Node directly, not through npm: npm reports a normal SIGTERM on redeploy as "command failed".
+CMD ["node", "--import", "tsx", "server/src/index.ts"]

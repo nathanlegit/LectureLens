@@ -33,8 +33,23 @@ if (existsSync(webDist)) {
   });
 }
 
-startJobRunner(db, config.DATA_DIR);
+const stopJobs = startJobRunner(db, config.DATA_DIR);
 
-serve({ fetch: app.fetch, port: config.PORT }, (info) => {
-  console.log(`Lecture Lens server on http://localhost:${info.port}`);
+const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
+  console.log(`Lecture Lens server on http://localhost:${info.port} (data in ${config.DATA_DIR})`);
+  const { n } = db.prepare("SELECT count(*) AS n FROM lectures").get() as { n: number };
+  // After a redeploy this should match the last deploy: 0 means the data directory is not persistent.
+  console.log(`${n} lecture(s) in the database`);
 });
+
+// Redeploys send SIGTERM. Close cleanly so SQLite checkpoints its WAL; a job cut off mid-stage
+// resumes from that stage on the next start.
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    console.log(`${signal}: shutting down`);
+    stopJobs();
+    server.close();
+    db.close();
+    process.exit(0);
+  });
+}
