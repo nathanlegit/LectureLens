@@ -9,19 +9,21 @@ export function SummaryTab({ overview, chapters }: { overview: string | null; ch
     <div className="p-4">
       {overview && (
         <section className="mb-6">
-          <h3 className="mb-1 text-xs font-medium tracking-wide text-faint uppercase">Overview</h3>
-          <Markdown className="text-[15px]">{overview}</Markdown>
+          <h3 className="mb-2 text-xs font-medium text-muted">Overview</h3>
+          <div className="callout">
+            <Markdown className="text-[15px]">{overview}</Markdown>
+          </div>
         </section>
       )}
-      <h3 className="mb-1 text-xs font-medium tracking-wide text-faint uppercase">Chapters</h3>
+      <h3 className="mb-1 text-xs font-medium text-muted">Chapters</h3>
       {chapters.length === 0 && <p className="text-sm text-muted">No chapters yet.</p>}
-      <ol>
+      <ol className="-mx-2">
         {chapters.map((c) => {
           const active = time >= c.startSec && time < c.endSec;
           return (
-            <li key={c.id} aria-current={active ? "true" : undefined} className={`-mx-2 rounded-ui px-2 py-2.5 ${active ? "bg-accent-soft" : ""}`}>
-              <button type="button" onClick={() => playerBus.seek(c.startSec)} className="flex w-full items-baseline gap-3 text-left hover:text-accent">
-                <span className={`w-11 shrink-0 font-mono text-xs ${active ? "text-accent" : "text-faint"}`}>{formatTime(c.startSec)}</span>
+            <li key={c.id} aria-current={active ? "true" : undefined} className={`rounded-lg px-2 py-2.5 transition-colors ${active ? "bg-accent-wash" : "hover:bg-hover"}`}>
+              <button type="button" onClick={() => playerBus.seek(c.startSec)} className="group flex w-full items-baseline gap-3 text-left">
+                <span className={`w-11 shrink-0 font-mono text-xs tabular-nums ${active ? "font-medium text-accent" : "text-faint"}`}>{formatTime(c.startSec)}</span>
                 <span className="font-medium">{c.title}</span>
               </button>
               <Markdown className="mt-0.5 pl-14 text-muted">{c.summary}</Markdown>

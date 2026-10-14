@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AskMode, Chapter, ChatMessage } from "@lecture-lens/shared";
 import { askStream, getJSON } from "../lib/api";
+import { Icon } from "./Brand";
 import { FrameStrip } from "./FrameStrip";
 import { Markdown } from "./Markdown";
 
@@ -86,21 +87,22 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-5 overflow-y-auto p-4">
+      <div className="scroll-quiet flex-1 space-y-6 overflow-y-auto p-4">
         {messages.length === 0 && !pending && (
-          <div className="py-6 text-center">
-            <p className="text-sm text-muted">
-              Ask anything about this lecture. Answers cite the moment and the board, and every chip jumps the video there.
-            </p>
-            <div className="mt-4 flex flex-col items-center gap-2">
+          <div className="pt-4">
+            <p className="font-medium">Ask this lecture</p>
+            <p className="mt-1 text-sm text-muted">Answers cite the moment and the board, and every timestamp jumps the video there.</p>
+            <p className="mt-5 mb-1 text-xs font-medium text-faint">Suggested</p>
+            <div className="-mx-2">
               {suggestions.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => void submit(s)}
-                  className="rounded-full border border-line px-3 py-1.5 text-sm text-ink transition hover:border-accent hover:text-accent"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink transition-colors hover:bg-hover"
                 >
-                  {s}
+                  <Icon.text className="h-4 w-4 shrink-0 text-faint" />
+                  <span className="truncate">{s}</span>
                 </button>
               ))}
             </div>
@@ -122,11 +124,14 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
               <Answer lectureId={lectureId} text={pending.answer} cited={pending.cited} />
             ) : (
               !pending.error && (
-                <p className="animate-pulse text-sm text-muted">{pending.mode === "guide" ? "Finding the right hint…" : "Reading the lecture…"}</p>
+                <p className="flex items-center gap-2 text-sm text-muted">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+                  {pending.mode === "guide" ? "Finding the right hint…" : "Reading the lecture…"}
+                </p>
               )
             )}
             {pending.error && (
-              <p role="alert" className="text-sm text-bad">
+              <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
                 {pending.error}{" "}
                 <button type="button" className="underline" onClick={() => setPending(null)}>
                   Dismiss
@@ -138,18 +143,10 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 
         {offerLadder && (
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void submit(NEXT_HINT, "guide")}
-              className="rounded-full border border-accent px-3 py-1.5 text-sm text-accent transition hover:bg-accent-soft"
-            >
+            <button type="button" onClick={() => void submit(NEXT_HINT, "guide")} className="btn btn-sm">
               Show me more
             </button>
-            <button
-              type="button"
-              onClick={() => void submit(REVEAL, "guide")}
-              className="rounded-full border border-line px-3 py-1.5 text-sm text-muted transition hover:border-faint"
-            >
+            <button type="button" onClick={() => void submit(REVEAL, "guide")} className="btn btn-ghost btn-sm">
               Just tell me
             </button>
           </div>
@@ -157,25 +154,8 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
         <div ref={bottom} />
       </div>
 
-      <div className="border-t border-line p-3">
-        <div role="radiogroup" aria-label="Answer style" className="mb-2 inline-flex rounded-ui bg-hover p-0.5 text-xs">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="radio"
-              aria-checked={mode === m.id}
-              title={m.hint}
-              onClick={() => setMode(m.id)}
-              className={`rounded-md px-2.5 py-1 font-medium transition ${
-                mode === m.id ? "bg-surface text-accent shadow-sm" : "text-muted hover:text-ink"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-        <form onSubmit={onSubmit} className="flex gap-2">
+      <form onSubmit={onSubmit} className="p-3 pt-0">
+        <div className="rounded-xl border border-line-strong bg-surface shadow-soft transition focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--ll-accent-soft)]">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -185,20 +165,38 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
                 void submit(input);
               }
             }}
-            rows={1}
+            rows={2}
             placeholder={mode === "guide" ? "Ask, or try an answer…" : "Ask about this lecture…"}
             aria-label="Your question"
-            className="max-h-32 min-h-10 flex-1 resize-none rounded-ui border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
+            className="block max-h-32 w-full resize-none bg-transparent px-3 pt-2.5 text-sm outline-none placeholder:text-faint"
           />
-          <button
-            type="submit"
-            disabled={streaming || !input.trim()}
-            className="rounded-ui bg-accent px-4 text-sm font-medium text-on-accent transition hover:opacity-90 disabled:opacity-40"
-          >
-            Ask
-          </button>
-        </form>
-      </div>
+          <div className="flex items-center justify-between px-2 pb-2">
+            <div role="radiogroup" aria-label="Answer style" className="flex rounded-md bg-hover p-0.5 text-xs">
+              {MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === m.id}
+                  title={m.hint}
+                  onClick={() => setMode(m.id)}
+                  className={`rounded-[5px] px-2 py-1 font-medium transition ${mode === m.id ? "bg-surface text-ink shadow-soft" : "text-muted hover:text-ink"}`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="submit"
+              disabled={streaming || !input.trim()}
+              aria-label="Ask"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-on-primary transition disabled:opacity-25"
+            >
+              <Icon.send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
@@ -206,8 +204,8 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 function Question({ text, mode }: { text: string; mode: AskMode }) {
   return (
     <div className="flex flex-col items-end gap-1">
-      {mode === "guide" && <span className="text-[11px] font-medium tracking-wide text-accent uppercase">Guide me</span>}
-      <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-hover px-3.5 py-2 text-sm">{text}</p>
+      {mode === "guide" && <span className="text-[11px] font-medium text-muted">Guide me</span>}
+      <p className="max-w-[85%] rounded-2xl bg-hover px-3.5 py-2 text-sm">{text}</p>
     </div>
   );
 }

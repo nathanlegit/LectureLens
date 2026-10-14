@@ -30,7 +30,7 @@ export function ProcessingStatus({ lecture: l, onChange }: { lecture: Lecture; o
               .then(onChange)
               .catch((err: Error) => setRetryError(err.message));
           }}
-          className="mt-2 rounded-ui bg-accent px-3 py-1 text-sm font-medium text-on-accent hover:opacity-90"
+          className="btn btn-sm mt-2"
         >
           Retry
         </button>
@@ -43,7 +43,7 @@ export function ProcessingStatus({ lecture: l, onChange }: { lecture: Lecture; o
   const fraction = l.stageTotal > 0 ? l.stageDone / l.stageTotal : null;
   return (
     <div>
-      <p className="text-xs text-warn">
+      <p className="text-xs text-muted">
         {label}
         {l.status === "describe" && l.stageTotal > 0 ? ` ${l.stageDone}/${l.stageTotal}` : "…"}
       </p>
@@ -55,9 +55,9 @@ export function ProcessingStatus({ lecture: l, onChange }: { lecture: Lecture; o
 /** A progress bar; null shows an indeterminate pulse for stages that cannot report progress. */
 export function Bar({ fraction }: { fraction: number | null }) {
   return (
-    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-hover">
+    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-press">
       <div
-        className={`h-full rounded-full bg-accent transition-[width] ${fraction === null ? "w-1/3 animate-pulse" : ""}`}
+        className={`h-full rounded-full bg-primary transition-[width] duration-500 ${fraction === null ? "w-1/3 animate-pulse" : ""}`}
         style={fraction === null ? undefined : { width: `${Math.max(2, fraction * 100)}%` }}
       />
     </div>
@@ -75,7 +75,7 @@ export function DeleteLectureButton({ lecture, onDeleted, className = "" }: { le
           .then(onDeleted)
           .catch((err: Error) => window.alert(err.message));
       }}
-      className={`rounded-ui px-2 py-1 text-xs text-faint hover:bg-bad-soft hover:text-bad ${className}`}
+      className={`rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-bad-soft hover:text-bad ${className}`}
     >
       Delete
     </button>
@@ -95,7 +95,7 @@ export function WeekSelect({ lecture, maxWeek, onMoved }: { lecture: Lecture; ma
           .then(onMoved)
           .catch((err: Error) => window.alert(err.message));
       }}
-      className="rounded-ui bg-transparent px-1 py-0.5 text-xs text-faint hover:bg-hover"
+      className="rounded-md bg-transparent px-1 py-1 text-xs text-muted transition-colors hover:bg-press"
     >
       <option value="">No week</option>
       {weeks.map((w) => (
@@ -133,13 +133,13 @@ export function NewModuleForm({ onDone, onCancel }: { onDone?: () => void; onCan
         onChange={(e) => setName(e.target.value)}
         placeholder="Module name, e.g. MATH0005 Linear Algebra"
         aria-label="Module name"
-        className="min-w-0 flex-1 rounded-ui border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+        className="field min-w-0 flex-1"
       />
-      <button type="submit" disabled={!name.trim()} className="rounded-ui bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:opacity-90 disabled:opacity-40">
+      <button type="submit" disabled={!name.trim()} className="btn btn-primary">
         Create
       </button>
       {onCancel && (
-        <button type="button" onClick={onCancel} className="rounded-ui px-2 py-2 text-sm text-muted hover:bg-hover">
+        <button type="button" onClick={onCancel} className="btn btn-ghost">
           Cancel
         </button>
       )}

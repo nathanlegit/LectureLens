@@ -18,10 +18,10 @@ export function FrameStrip({ lectureId, ids }: { lectureId: string; ids: string[
             key={id}
             type="button"
             onClick={() => setOpen(id)}
-            className="group relative shrink-0 overflow-hidden rounded-md ring-1 ring-line transition hover:ring-accent"
+            className="group relative shrink-0 overflow-hidden rounded-md border border-line transition hover:border-line-strong hover:shadow-float"
           >
-            <img src={frameUrl(lectureId, id)} alt={`Frame at ${formatTime(times.get(id)!)}`} loading="lazy" className="h-16 w-auto" />
-            <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 font-mono text-[10px] text-white">
+            <img src={frameUrl(lectureId, id)} alt={`Frame at ${formatTime(times.get(id)!)}`} loading="lazy" className="h-16 w-auto min-w-24 bg-sand" />
+            <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 font-mono text-[10px] text-white tabular-nums">
               {formatTime(times.get(id)!)}
             </span>
           </button>
@@ -40,11 +40,11 @@ function Lightbox({ lectureId, id, sec, onClose }: { lectureId: string; id: stri
   }, [onClose]);
 
   return (
-    <div role="dialog" aria-modal="true" onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+    <div role="dialog" aria-modal="true" onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
       <figure onClick={(e) => e.stopPropagation()} className="w-[min(92vw,1100px)]">
-        <img src={frameUrl(lectureId, id)} alt={`Frame at ${formatTime(sec)}`} className="max-h-[80vh] w-[min(92vw,1100px)] rounded-ui object-contain" />
+        <img src={frameUrl(lectureId, id)} alt={`Frame at ${formatTime(sec)}`} className="max-h-[80vh] w-[min(92vw,1100px)] rounded-lg object-contain" />
         <figcaption className="mt-3 flex items-center justify-between gap-3 text-sm text-white/80">
-          <span className="font-mono">{formatTime(sec)}</span>
+          <span className="font-mono tabular-nums">{formatTime(sec)}</span>
           <span className="flex gap-2">
             <button
               type="button"
@@ -52,11 +52,11 @@ function Lightbox({ lectureId, id, sec, onClose }: { lectureId: string; id: stri
                 playerBus.seek(sec);
                 onClose();
               }}
-              className="rounded-md bg-accent px-3 py-1.5 font-medium text-on-accent hover:opacity-90"
+              className="btn btn-sm border-transparent bg-white text-[#1f1f1e] hover:bg-white/90"
             >
               Jump to {formatTime(sec)}
             </button>
-            <button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 hover:bg-white/10">
+            <button type="button" onClick={onClose} className="btn btn-sm border-transparent bg-transparent text-white/80 shadow-none hover:bg-white/10">
               Close
             </button>
           </span>

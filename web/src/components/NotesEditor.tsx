@@ -4,7 +4,7 @@ import { formatTime } from "../lib/api";
 import { useNotes } from "../lib/notes";
 import { usePlayerTime } from "../lib/playerBus";
 
-/** A borderless, auto-growing notes area in the Notion style. With withTimestamps, it can stamp the video time. */
+/** A borderless, auto-growing notes area. With withTimestamps, it can stamp the video time. */
 export function NotesEditor({ storageKey, placeholder, withTimestamps = false }: { storageKey: string; placeholder: string; withTimestamps?: boolean }) {
   const { text, update, saved } = useNotes(storageKey);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -34,10 +34,10 @@ export function NotesEditor({ storageKey, placeholder, withTimestamps = false }:
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between gap-3 text-xs text-faint">
-        <span>{saved ? "Saved in this browser" : "Saving…"}</span>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs text-faint">{saved ? "Saved in this browser" : "Saving…"}</span>
         {withTimestamps && (
-          <button type="button" onClick={insertTimestamp} className="rounded-ui px-2 py-1 text-muted hover:bg-hover">
+          <button type="button" onClick={insertTimestamp} className="btn btn-ghost btn-sm -mr-2 tabular-nums">
             + Timestamp {formatTime(time)}
           </button>
         )}

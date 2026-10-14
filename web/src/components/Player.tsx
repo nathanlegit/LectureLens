@@ -27,7 +27,7 @@ export function Player({ lectureId, posterFrameId }: { lectureId: string; poster
       preload="metadata"
       playsInline
       onTimeUpdate={(e) => playerBus.reportTime(e.currentTarget.currentTime)}
-      className="aspect-video w-full rounded-ui bg-black shadow-sm"
+      className="aspect-video w-full rounded-xl bg-black"
     />
   );
 }

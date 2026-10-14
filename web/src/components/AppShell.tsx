@@ -2,8 +2,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { Lecture, ModuleWithLectures } from "@lecture-lens/shared";
 import { groupByWeek, isProcessing, useModules, weekLabel } from "../lib/modules";
+import { Icon, Logo } from "./Brand";
 
 const OPEN_KEY = "lecture-lens-sidebar-open";
+const ROW = "flex h-7 items-center gap-2 rounded-md px-2 transition-colors";
+const ACTIVE = "bg-press font-medium text-ink";
+const IDLE = "text-muted hover:bg-hover hover:text-ink";
 
 function useExpanded() {
   const [open, setOpen] = useState<Set<string>>(() => {
@@ -28,7 +32,7 @@ function useExpanded() {
   return { open, toggle };
 }
 
-/** Notion-style layout: a sidebar tree of modules, weeks and lectures beside the page. */
+/** App layout: a sidebar tree of modules, weeks and lectures beside the page. */
 export function AppShell({ children }: { children: ReactNode }) {
   const [drawer, setDrawer] = useState(false);
   const [location] = useLocation();
@@ -42,20 +46,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {drawer && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
-          <button type="button" aria-label="Close navigation" className="absolute inset-0 bg-black/30" onClick={() => setDrawer(false)} />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-line bg-sidebar shadow-xl">
+          <button type="button" aria-label="Close navigation" className="absolute inset-0 bg-black/25" onClick={() => setDrawer(false)} />
+          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-line bg-sidebar shadow-window">
             <Sidebar />
           </aside>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b border-line px-3 py-2 md:hidden">
-          <button type="button" onClick={() => setDrawer(true)} aria-label="Open navigation" className="rounded-ui px-2 py-1 text-lg leading-none text-muted hover:bg-hover">
-            ☰
+        <div className="flex h-12 items-center gap-2 border-b border-line px-2 md:hidden">
+          <button type="button" onClick={() => setDrawer(true)} aria-label="Open navigation" className="btn btn-ghost btn-sm px-1.5">
+            <Icon.menu className="h-[18px] w-[18px]" />
           </button>
-          <Link href="/" className="text-sm font-semibold">
-            Lecture Lens
+          <Link href="/library" className="text-sm">
+            <Logo size={20} />
           </Link>
         </div>
         {children}
@@ -84,19 +88,21 @@ function Sidebar() {
   }, [location, modules]);
 
   return (
-    <nav className="flex h-full flex-col overflow-y-auto px-2 py-3 text-sm" aria-label="Modules">
-      <Link href="/" className="mb-3 flex items-center gap-2 rounded-ui px-2 py-1.5 font-semibold hover:bg-hover">
-        <span className="flex h-5 w-5 items-center justify-center rounded bg-ink text-[11px] font-bold text-bg">L</span>
-        Lecture Lens
+    <nav className="scroll-quiet flex h-full flex-col overflow-y-auto px-2 py-2 text-sm" aria-label="Modules">
+      <Link href="/" className="mb-2 flex h-10 items-center rounded-md px-2 hover:bg-hover" aria-label="Lecture Lens front page">
+        <Logo size={20} />
       </Link>
-      <NavItem href="/" active={location === "/"} icon="⌂">
-        Home
+      <NavItem href="/library" active={location === "/library"} icon={<Icon.home className="h-4 w-4" />}>
+        Library
       </NavItem>
 
       <p className="mt-5 mb-1 px-2 text-xs font-medium text-faint">Modules</p>
       {modules?.map((m) => <ModuleBranch key={m.id} module={m} open={open} toggle={toggle} location={location} />)}
-      <Link href="/?new=module" className="mt-1 flex items-center gap-2 rounded-ui px-2 py-1 text-muted hover:bg-hover">
-        <span className="w-4 text-center">+</span> New module
+      <Link href="/library?new=module" className={`${ROW} ${IDLE}`}>
+        <span className="flex w-4 justify-center">
+          <Icon.plus className="h-4 w-4" />
+        </span>
+        New module
       </Link>
     </nav>
   );
@@ -120,18 +126,18 @@ function ModuleBranch({
         {m.name}
       </Row>
       {expanded && (
-        <div className="ml-3">
-          {m.lectures.length === 0 && <p className="py-1 pl-6 text-xs text-faint">No lectures yet</p>}
+        <div className="ml-3.5">
+          {m.lectures.length === 0 && <p className="py-1 pl-7 text-xs text-faint">No lectures yet</p>}
           {groupByWeek(m.lectures).map(({ week, lectures }) => {
             const key = `${m.id}:${week}`;
             const weekOpen = open.has(key);
             return (
               <div key={key}>
-                <Row expanded={weekOpen} onToggle={() => toggle(key)} icon={<span className="text-faint">▤</span>}>
-                  <span className="text-muted">{weekLabel(week)}</span>
+                <Row expanded={weekOpen} onToggle={() => toggle(key)} icon={<Icon.calendar className="h-3.5 w-3.5" />}>
+                  {weekLabel(week)}
                 </Row>
                 {weekOpen && (
-                  <div className="ml-3">
+                  <div className="ml-3.5">
                     {lectures.map((l) => (
                       <NavItem key={l.id} href={`/lectures/${l.id}`} active={location === `/lectures/${l.id}`} icon={<LectureDot lecture={l} />}>
                         {l.title}
@@ -164,28 +170,28 @@ function Row({
   active?: boolean;
 }) {
   const label = (
-    <span className="flex min-w-0 flex-1 items-center gap-2 py-1 pr-2">
+    <span className="flex min-w-0 flex-1 items-center gap-2 pr-2">
       <span className="flex w-4 shrink-0 justify-center">{icon}</span>
       <span className="truncate">{children}</span>
     </span>
   );
   return (
-    <div className={`group flex items-center rounded-ui ${active ? "bg-hover font-medium" : "hover:bg-hover"}`}>
+    <div className={`group flex h-7 items-center rounded-md transition-colors ${active ? ACTIVE : IDLE}`}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
         aria-label={expanded ? "Collapse" : "Expand"}
-        className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-[10px] text-faint hover:bg-hover"
+        className="ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-faint hover:bg-press hover:text-ink"
       >
-        <span className={`transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
+        <Icon.chevron className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`} />
       </button>
       {href ? (
-        <Link href={href} className="flex min-w-0 flex-1">
+        <Link href={href} className="flex h-full min-w-0 flex-1 items-center">
           {label}
         </Link>
       ) : (
-        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 text-left">
+        <button type="button" onClick={onToggle} className="flex h-full min-w-0 flex-1 items-center text-left">
           {label}
         </button>
       )}
@@ -195,26 +201,24 @@ function Row({
 
 function NavItem({ href, active, icon, children }: { href: string; active: boolean; icon: ReactNode; children: ReactNode }) {
   return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-2 rounded-ui px-2 py-1 ${active ? "bg-hover font-medium" : "text-ink hover:bg-hover"}`}
-    >
-      <span className="flex w-4 shrink-0 justify-center text-faint">{icon}</span>
+    <Link href={href} aria-current={active ? "page" : undefined} className={`${ROW} ${active ? ACTIVE : IDLE}`}>
+      <span className="flex w-4 shrink-0 justify-center">{icon}</span>
       <span className="truncate">{children}</span>
     </Link>
   );
 }
 
-export function ModuleIcon({ name, size = "sm" }: { name: string; size?: "sm" | "lg" }) {
+const ICON_SIZES = {
+  sm: "h-[18px] w-[18px] rounded text-[10px]",
+  md: "h-9 w-9 rounded-lg text-sm",
+  lg: "h-16 w-16 rounded-xl text-2xl",
+};
+
+/** A module's page icon: its initial on a soft tile. */
+export function ModuleIcon({ name, size = "sm" }: { name: string; size?: keyof typeof ICON_SIZES }) {
   const letter = name.trim()[0]?.toUpperCase() ?? "?";
   return (
-    <span
-      aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded bg-accent-soft font-semibold text-accent ${
-        size === "lg" ? "h-14 w-14 text-2xl" : "h-4 w-4 text-[10px]"
-      }`}
-    >
+    <span aria-hidden className={`flex shrink-0 items-center justify-center bg-sand font-semibold text-ink ${ICON_SIZES[size]}`}>
       {letter}
     </span>
   );
@@ -222,7 +226,7 @@ export function ModuleIcon({ name, size = "sm" }: { name: string; size?: "sm" | 
 
 /** Lecture icon: a play mark when ready, a pulsing dot while processing, red when failed. */
 export function LectureDot({ lecture }: { lecture: Lecture }) {
-  if (isProcessing(lecture)) return <span className="h-2 w-2 animate-pulse rounded-full bg-warn" title="Processing" />;
-  if (lecture.status === "failed") return <span className="h-2 w-2 rounded-full bg-bad" title="Failed" />;
-  return <span className="text-[10px]">▷</span>;
+  if (isProcessing(lecture)) return <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-warn" title="Processing" />;
+  if (lecture.status === "failed") return <span className="h-1.5 w-1.5 rounded-full bg-bad" title="Failed" />;
+  return <Icon.play className="h-3 w-3" />;
 }

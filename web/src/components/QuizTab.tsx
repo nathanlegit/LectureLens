@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chapter, QuizQuestion } from "@lecture-lens/shared";
 import { formatTime, getJSON, postJSON } from "../lib/api";
 import { playerBus, usePlayerTime } from "../lib/playerBus";
+import { Icon } from "./Brand";
 import { Markdown } from "./Markdown";
 
 export function QuizTab({ chapters }: { chapters: Chapter[] }) {
@@ -16,14 +17,14 @@ export function QuizTab({ chapters }: { chapters: Chapter[] }) {
 
   return (
     <div className="p-4">
-      <label className="block text-xs font-medium tracking-wide text-muted uppercase" htmlFor="quiz-chapter">
+      <label className="block text-xs font-medium text-muted" htmlFor="quiz-chapter">
         Chapter
       </label>
       <select
         id="quiz-chapter"
         value={chapterId}
         onChange={(e) => setChapterId(e.target.value)}
-        className="mt-1 w-full rounded-ui border border-line bg-surface px-3 py-2 text-sm"
+        className="field mt-1.5 w-full"
       >
         {chapters.map((c) => (
           <option key={c.id} value={c.id}>
@@ -64,14 +65,16 @@ function ChapterQuiz({ chapter }: { chapter: Chapter }) {
 
   if (!questions || questions.length === 0) {
     return (
-      <div className="mt-6 text-center">
-        <p className="text-sm text-muted">
+      <div className="mt-6 rounded-xl border border-dashed border-line-strong px-5 py-8 text-center">
+        <Icon.check className="mx-auto h-6 w-6 text-faint" />
+        <p className="mt-3 font-medium">Check you got it</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
           A few questions on this chapter. Wrong answers tell you what you likely mixed up, and where to rewatch.
         </p>
         <button
           type="button"
           onClick={() => generate.mutate(false)}
-          className="mt-4 rounded-ui bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:opacity-90"
+          className="btn btn-primary mt-5"
         >
           Quiz me on this chapter
         </button>
@@ -90,19 +93,19 @@ function ChapterQuiz({ chapter }: { chapter: Chapter }) {
       ))}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-sm">
-        <span className="text-muted">
+        <span className="font-medium">
           {answered.length === questions.length ? `${correct} of ${questions.length} correct` : `${answered.length} of ${questions.length} answered`}
         </span>
         <span className="flex gap-2">
           {answered.length > 0 && (
-            <button type="button" onClick={() => setChosen({})} className="rounded-ui px-3 py-1.5 text-muted hover:bg-hover">
+            <button type="button" onClick={() => setChosen({})} className="btn btn-ghost btn-sm">
               Try again
             </button>
           )}
           <button
             type="button"
             onClick={() => generate.mutate(true)}
-            className="rounded-ui border border-line px-3 py-1.5 hover:border-accent hover:text-accent"
+            className="btn btn-sm"
           >
             New questions
           </button>
@@ -119,8 +122,8 @@ function QuestionCard({ n, q, chosen, onChoose }: { n: number; q: QuizQuestion; 
 
   return (
     <section>
-      <div className="flex gap-2 text-sm font-medium">
-        <span className="text-faint">{n}.</span>
+      <div className="flex gap-2 text-[15px] font-medium">
+        <span className="text-faint tabular-nums">{n}.</span>
         <Markdown inline className="leading-relaxed">
           {q.question}
         </Markdown>
@@ -130,19 +133,19 @@ function QuestionCard({ n, q, chosen, onChoose }: { n: number; q: QuizQuestion; 
           const isAnswer = i === q.answerIdx;
           const isChosen = i === chosen;
           const style = !done
-            ? "border-line hover:border-accent hover:bg-accent-soft"
+            ? "border-line-strong bg-surface hover:border-faint hover:bg-hover"
             : isAnswer
               ? "border-ok bg-ok-soft"
               : isChosen
                 ? "border-bad bg-bad-soft"
-                : "border-line opacity-60";
+                : "border-line opacity-55";
           return (
             <button
               key={i}
               type="button"
               disabled={done}
               onClick={() => onChoose(i)}
-              className={`block w-full rounded-ui border px-3 py-2 text-left text-sm transition ${style}`}
+              className={`block w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${style}`}
             >
               <Markdown inline>{opt}</Markdown>
             </button>
@@ -151,7 +154,7 @@ function QuestionCard({ n, q, chosen, onChoose }: { n: number; q: QuizQuestion; 
       </div>
 
       {done && (
-        <div className={`mt-3 rounded-ui px-3 py-2 text-sm ${right ? "bg-ok-soft" : "bg-warn-soft"}`}>
+        <div className={`mt-3 rounded-lg px-3.5 py-3 text-sm ${right ? "bg-ok-soft" : "bg-warn-soft"}`}>
           {!right && q.misconceptions[chosen] && (
             <p className="mb-1.5 font-medium text-warn">
               <Markdown inline>{q.misconceptions[chosen]}</Markdown>
@@ -164,11 +167,7 @@ function QuestionCard({ n, q, chosen, onChoose }: { n: number; q: QuizQuestion; 
           <button
             type="button"
             onClick={() => playerBus.seek(q.atSec)}
-            className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${
-              right
-                ? "text-muted ring-line hover:bg-hover"
-                : "bg-accent text-on-accent ring-accent hover:opacity-90"
-            }`}
+            className={`btn btn-sm mt-2.5 ${right ? "btn-ghost -ml-2" : "btn-primary"}`}
           >
             ▶ {right ? "See it in the lecture" : "Rewatch"} at {formatTime(q.atSec)}
           </button>

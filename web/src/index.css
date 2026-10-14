@@ -3,28 +3,38 @@
 
 /*
  * Design tokens: the one place to restyle the app. Components use only these names
- * (bg-bg, bg-sidebar, text-ink, text-muted, border-line, bg-accent, ...), never raw colours.
- * Values are a neutral, Notion-like placeholder until the design pass.
+ * (bg-bg, bg-sidebar, text-ink, text-muted, border-line, bg-primary, text-accent, ...), never raw colours.
+ * Near-black is the primary (buttons, active states); blue is reserved for citations and links,
+ * so blue always means "this jumps the video". Swap --ll-primary to change the brand colour.
  */
 :root {
   --ll-bg: #ffffff;
-  --ll-sidebar: #f7f7f5;
+  --ll-sidebar: #f8f8f7;
+  --ll-sand: #f1f1ef;
   --ll-surface: #ffffff;
   --ll-hover: rgb(55 53 47 / 0.06);
-  --ll-line: rgb(55 53 47 / 0.12);
-  --ll-ink: #37352f;
-  --ll-muted: rgb(55 53 47 / 0.65);
-  --ll-faint: rgb(55 53 47 / 0.42);
+  --ll-press: rgb(55 53 47 / 0.1);
+  --ll-line: rgb(55 53 47 / 0.1);
+  --ll-line-strong: rgb(55 53 47 / 0.18);
+  --ll-ink: #1f1f1e;
+  --ll-muted: #73726e;
+  --ll-faint: #a5a49f;
+  --ll-primary: #1f1f1e;
+  --ll-on-primary: #ffffff;
   --ll-accent: #2383e2;
   --ll-accent-soft: rgb(35 131 226 / 0.1);
+  --ll-accent-wash: rgb(35 131 226 / 0.06);
   --ll-on-accent: #ffffff;
   --ll-ok: #448361;
   --ll-ok-soft: rgb(68 131 97 / 0.1);
   --ll-bad: #d44c47;
   --ll-bad-soft: rgb(212 76 71 / 0.08);
-  --ll-warn: #b7791f;
+  --ll-warn: #c4790f;
   --ll-warn-soft: rgb(203 145 47 / 0.12);
   --ll-radius: 6px;
+  --ll-shadow-sm: 0 1px 2px rgb(15 15 15 / 0.04);
+  --ll-shadow-md: 0 1px 2px rgb(15 15 15 / 0.04), 0 4px 16px rgb(15 15 15 / 0.06);
+  --ll-shadow-lg: 0 0 0 1px rgb(15 15 15 / 0.05), 0 8px 24px rgb(15 15 15 / 0.08), 0 24px 64px rgb(15 15 15 / 0.08);
   color-scheme: light;
 }
 
@@ -32,20 +42,30 @@
   :root {
     --ll-bg: #191919;
     --ll-sidebar: #202020;
-    --ll-surface: #252525;
+    --ll-sand: #2a2a2a;
+    --ll-surface: #212121;
     --ll-hover: rgb(255 255 255 / 0.055);
-    --ll-line: rgb(255 255 255 / 0.094);
-    --ll-ink: rgb(255 255 255 / 0.81);
+    --ll-press: rgb(255 255 255 / 0.09);
+    --ll-line: rgb(255 255 255 / 0.09);
+    --ll-line-strong: rgb(255 255 255 / 0.16);
+    --ll-ink: rgb(255 255 255 / 0.88);
     --ll-muted: rgb(255 255 255 / 0.55);
     --ll-faint: rgb(255 255 255 / 0.35);
+    --ll-primary: #ededec;
+    --ll-on-primary: #191919;
     --ll-accent: #529cca;
     --ll-accent-soft: rgb(82 156 202 / 0.16);
+    --ll-accent-wash: rgb(82 156 202 / 0.08);
+    --ll-on-accent: #ffffff;
     --ll-ok: #4dab9a;
     --ll-ok-soft: rgb(77 171 154 / 0.14);
     --ll-bad: #ff7369;
     --ll-bad-soft: rgb(255 115 105 / 0.12);
     --ll-warn: #ffa344;
     --ll-warn-soft: rgb(255 163 68 / 0.14);
+    --ll-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.2);
+    --ll-shadow-md: 0 1px 2px rgb(0 0 0 / 0.2), 0 4px 16px rgb(0 0 0 / 0.25);
+    --ll-shadow-lg: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.3), 0 24px 64px rgb(0 0 0 / 0.35);
     color-scheme: dark;
   }
 }
@@ -53,14 +73,20 @@
 @theme inline {
   --color-bg: var(--ll-bg);
   --color-sidebar: var(--ll-sidebar);
+  --color-sand: var(--ll-sand);
   --color-surface: var(--ll-surface);
   --color-hover: var(--ll-hover);
+  --color-press: var(--ll-press);
   --color-line: var(--ll-line);
+  --color-line-strong: var(--ll-line-strong);
   --color-ink: var(--ll-ink);
   --color-muted: var(--ll-muted);
   --color-faint: var(--ll-faint);
+  --color-primary: var(--ll-primary);
+  --color-on-primary: var(--ll-on-primary);
   --color-accent: var(--ll-accent);
   --color-accent-soft: var(--ll-accent-soft);
+  --color-accent-wash: var(--ll-accent-wash);
   --color-on-accent: var(--ll-on-accent);
   --color-ok: var(--ll-ok);
   --color-ok-soft: var(--ll-ok-soft);
@@ -69,13 +95,137 @@
   --color-warn: var(--ll-warn);
   --color-warn-soft: var(--ll-warn-soft);
   --radius-ui: var(--ll-radius);
-  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --shadow-soft: var(--ll-shadow-sm);
+  --shadow-float: var(--ll-shadow-md);
+  --shadow-window: var(--ll-shadow-lg);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 body {
   background: var(--ll-bg);
   color: var(--ll-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--ll-accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ll-accent);
+  outline-offset: 1px;
+}
+
+@layer components {
+  .card {
+    border: 1px solid var(--ll-line);
+    border-radius: 10px;
+    background: var(--ll-surface);
+    box-shadow: var(--ll-shadow-sm);
+  }
+  a.card,
+  button.card {
+    transition:
+      box-shadow 150ms ease,
+      border-color 150ms ease;
+  }
+  a.card:hover,
+  button.card:hover {
+    border-color: var(--ll-line-strong);
+    box-shadow: var(--ll-shadow-md);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 2rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--ll-line-strong);
+    border-radius: var(--ll-radius);
+    background: var(--ll-surface);
+    color: var(--ll-ink);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: var(--ll-shadow-sm);
+    transition:
+      background-color 120ms ease,
+      opacity 120ms ease;
+  }
+  .btn:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--ll-surface), var(--ll-ink) 4%);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    border-color: transparent;
+    background: var(--ll-primary);
+    color: var(--ll-on-primary);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--ll-primary), var(--ll-bg) 14%);
+  }
+  .btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ll-muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--ll-hover);
+    color: var(--ll-ink);
+  }
+  .btn-lg {
+    height: 2.5rem;
+    padding: 0 1.1rem;
+    font-size: 0.9375rem;
+    border-radius: 8px;
+  }
+  .btn-sm {
+    height: 1.75rem;
+    padding: 0 0.55rem;
+    font-size: 0.8125rem;
+  }
+
+  .display {
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+
+  .field {
+    border: 1px solid var(--ll-line-strong);
+    border-radius: var(--ll-radius);
+    background: var(--ll-surface);
+    padding: 0.4rem 0.65rem;
+    font-size: 0.875rem;
+    color: var(--ll-ink);
+    outline: none;
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+  .field:focus {
+    border-color: var(--ll-accent);
+    box-shadow: 0 0 0 3px var(--ll-accent-soft);
+  }
+  .field::placeholder {
+    color: var(--ll-faint);
+  }
+
+  /* Notion-style callout block. */
+  .callout {
+    border-radius: 8px;
+    background: var(--ll-sand);
+    padding: 0.9rem 1rem;
+  }
 }
 
 /* Rendered answers, summaries and notes follow the tokens too. */
@@ -98,4 +248,17 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0.25rem 0;
+}
+
+/* Thin, quiet scrollbars in panels. */
+.scroll-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ll-line-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .btn {
+    transition: none !important;
+  }
 }

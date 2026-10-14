@@ -19,7 +19,7 @@ export function CitationChip({ id }: { id: string }) {
       type="button"
       onClick={() => playerBus.seek(sec)}
       title={`Jump to ${formatTime(sec)} (${id})`}
-      className="mx-0.5 inline-flex translate-y-[-1px] items-center rounded-full bg-accent-soft px-1.5 py-px align-baseline font-mono text-[0.75em] font-medium text-accent no-underline ring-1 ring-accent-soft transition hover:bg-accent-soft"
+      className="mx-0.5 inline-flex translate-y-[-1px] items-center rounded-[4px] bg-accent-soft px-1.5 py-px align-baseline font-mono text-[0.78em] font-medium text-accent tabular-nums no-underline transition-colors hover:bg-accent hover:text-on-accent"
     >
       {formatTime(sec)}
     </button>
