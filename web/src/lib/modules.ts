@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Lecture, ModuleWithLectures } from "@lecture-lens/shared";
+import type { Lecture, ModuleWithLectures, WeekInfo } from "@lecture-lens/shared";
 import { getJSON } from "./api";
 
 export const isProcessing = (l: Lecture) => l.status !== "ready" && l.status !== "failed";
@@ -18,13 +18,28 @@ export function useRefreshModules() {
   return () => queryClient.invalidateQueries({ queryKey: ["modules"] });
 }
 
-export const weekLabel = (week: number | null) => (week === null ? "No week" : `Week ${week}`);
+export const defaultWeekLabel = (week: number) => `Week ${week}`;
 
-/** Lectures grouped by week in order, with lectures that have no week last. */
-export function groupByWeek(lectures: Lecture[]): { week: number | null; lectures: Lecture[] }[] {
-  const groups = new Map<number | null, Lecture[]>();
-  for (const l of lectures) groups.set(l.week, [...(groups.get(l.week) ?? []), l]);
-  return [...groups.entries()]
-    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : a - b))
-    .map(([week, ls]) => ({ week, lectures: ls }));
+/** A week's display name: its custom title if it has one, otherwise "Week N" ("No week" for none). */
+export function weekLabel(week: number | null, weeks: WeekInfo[] = []): string {
+  if (week === null) return "No week";
+  return weeks.find((w) => w.week === week)?.title || defaultWeekLabel(week);
+}
+
+export interface WeekGroup {
+  week: number | null;
+  label: string;
+  lectures: Lecture[];
+}
+
+/** A module's weeks in order, including saved empty ones, with lectures that have no week last. */
+export function groupWeeks(m: Pick<ModuleWithLectures, "lectures" | "weeks">): WeekGroup[] {
+  const numbers = new Set<number>(m.weeks.map((w) => w.week));
+  for (const l of m.lectures) if (l.week !== null) numbers.add(l.week);
+  const groups: WeekGroup[] = [...numbers]
+    .sort((a, b) => a - b)
+    .map((week) => ({ week, label: weekLabel(week, m.weeks), lectures: m.lectures.filter((l) => l.week === week) }));
+  const unsorted = m.lectures.filter((l) => l.week === null);
+  if (unsorted.length > 0) groups.push({ week: null, label: weekLabel(null), lectures: unsorted });
+  return groups;
 }

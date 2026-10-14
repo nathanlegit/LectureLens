@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { Lecture, ModuleWithLectures } from "@lecture-lens/shared";
-import { groupByWeek, isProcessing, useModules, weekLabel } from "../lib/modules";
+import { groupWeeks, isProcessing, useModules } from "../lib/modules";
 import { Icon, Logo } from "./Brand";
 
 const OPEN_KEY = "lecture-lens-sidebar-open";
@@ -127,17 +127,18 @@ function ModuleBranch({
       </Row>
       {expanded && (
         <div className="ml-3.5">
-          {m.lectures.length === 0 && <p className="py-1 pl-7 text-xs text-faint">No lectures yet</p>}
-          {groupByWeek(m.lectures).map(({ week, lectures }) => {
+          {m.lectures.length === 0 && m.weeks.length === 0 && <p className="py-1 pl-7 text-xs text-faint">No lectures yet</p>}
+          {groupWeeks(m).map(({ week, label, lectures }) => {
             const key = `${m.id}:${week}`;
             const weekOpen = open.has(key);
             return (
               <div key={key}>
                 <Row expanded={weekOpen} onToggle={() => toggle(key)} icon={<Icon.calendar className="h-3.5 w-3.5" />}>
-                  {weekLabel(week)}
+                  {label}
                 </Row>
                 {weekOpen && (
                   <div className="ml-3.5">
+                    {lectures.length === 0 && <p className="py-1 pl-7 text-xs text-faint">Empty</p>}
                     {lectures.map((l) => (
                       <NavItem key={l.id} href={`/lectures/${l.id}`} active={location === `/lectures/${l.id}`} icon={<LectureDot lecture={l} />}>
                         {l.title}

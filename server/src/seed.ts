@@ -129,6 +129,7 @@ export async function importSeed(db: DB, dataDir: string, archivePath: string): 
       db.prepare(
         "INSERT INTO lectures (id, moduleId, title, videoPath, durationSec, status, isSeed, week, summary) VALUES (?, ?, ?, ?, ?, 'ready', 1, ?, ?)",
       ).run(id, seed.module.id, seed.lecture.title, join(target, "video.mp4"), seed.lecture.durationSec, seed.lecture.week, seed.lecture.summary);
+      if (seed.lecture.week !== null) db.prepare("INSERT OR IGNORE INTO weeks (moduleId, week) VALUES (?, ?)").run(seed.module.id, seed.lecture.week);
       const seg = db.prepare("INSERT INTO transcript_segments (lectureId, startSec, endSec, text) VALUES (?, ?, ?, ?)");
       for (const s of seed.segments) seg.run(id, s.startSec, s.endSec, s.text);
       const frame = db.prepare("INSERT INTO frames (lectureId, id, atSec, kind, hash, imagePath, description) VALUES (?, ?, ?, ?, ?, ?, ?)");

@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { LectureDetail } from "@lecture-lens/shared";
 import { AskTab } from "../components/AskTab";
+import { EditableText } from "../components/Editable";
 import { ProcessingStatus } from "../components/LectureBits";
 import { BlockTimes } from "../components/Markdown";
 import { NotesEditor } from "../components/NotesEditor";
 import { Player } from "../components/Player";
 import { QuizTab } from "../components/QuizTab";
 import { SummaryTab } from "../components/SummaryTab";
-import { formatTime, getJSON } from "../lib/api";
+import { Transcript } from "../components/Transcript";
+import { formatTime, getJSON, postWrite } from "../lib/api";
 import { useModules, weekLabel } from "../lib/modules";
 import { usePlayerTime } from "../lib/playerBus";
 
@@ -31,6 +33,7 @@ export function LectureView({ id }: { id: string }) {
     },
   });
   const { data: modules } = useModules();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("summary");
   const blockTimes = useMemo(() => new Map(data?.frames.map((f, i) => [f.id, i === 0 ? 0 : f.atSec])), [data]);
 
@@ -38,6 +41,10 @@ export function LectureView({ id }: { id: string }) {
   if (error) return <p className="p-12 text-sm text-bad">{error.message}</p>;
   const { lecture, chapters } = data;
   const module = modules?.find((m) => m.id === lecture.moduleId);
+  const rename = (title: string) =>
+    postWrite(`/lectures/${lecture.id}`, { title }).then(() =>
+      Promise.all([queryClient.invalidateQueries({ queryKey: ["lecture", id] }), queryClient.invalidateQueries({ queryKey: ["modules"] })]),
+    );
 
   return (
     <BlockTimes.Provider value={blockTimes}>
@@ -49,14 +56,16 @@ export function LectureView({ id }: { id: string }) {
             </Link>
           )}
           <span className="text-faint">/</span>
-          <span className="shrink-0 px-1.5">{weekLabel(lecture.week)}</span>
+          <span className="shrink-0 px-1.5">{weekLabel(lecture.week, module?.weeks)}</span>
           <span className="text-faint">/</span>
           <span className="truncate px-1.5 text-ink">{lecture.title}</span>
         </nav>
 
         {lecture.status !== "ready" ? (
           <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-            <h1 className="display text-[2rem]">{lecture.title}</h1>
+            <h1 className="display text-[2rem]">
+              <EditableText label="Lecture title" value={lecture.title} onSave={rename} />
+            </h1>
             <div className="card mt-8 max-w-md p-4">
               <ProcessingStatus lecture={lecture} onChange={() => void refetch()} />
             </div>
@@ -64,14 +73,17 @@ export function LectureView({ id }: { id: string }) {
           </main>
         ) : (
           <div className="grid min-h-0 flex-1 gap-6 px-4 pb-4 md:px-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,1fr)]">
-            <section className="scroll-quiet min-w-0 pt-4 xl:overflow-y-auto">
-              <h1 className="display text-[1.75rem] md:text-[2rem]">{lecture.title}</h1>
+            <section className="scroll-quiet flex min-w-0 flex-col pt-4 xl:min-h-0 xl:overflow-y-auto">
+              <h1 className="display text-[1.75rem] md:text-[2rem]">
+                <EditableText label="Lecture title" value={lecture.title} onSave={rename} />
+              </h1>
               <p className="mt-1.5 mb-5 text-sm text-muted">
                 {lecture.durationSec ? `${formatTime(lecture.durationSec)} · ` : ""}
                 {chapters.length} chapters
               </p>
               <Player lectureId={lecture.id} posterFrameId={data.frames[0]?.id} />
               <NowPlaying chapters={chapters} />
+              <Transcript lectureId={lecture.id} className="mt-4 h-[42dvh] shrink-0 xl:h-auto xl:min-h-[240px] xl:flex-1" />
             </section>
 
             <section className="card flex min-h-[70dvh] flex-col overflow-hidden xl:min-h-0">
@@ -98,7 +110,7 @@ export function LectureView({ id }: { id: string }) {
                 <AskTab lectureId={lecture.id} chapters={chapters} />
               </div>
               <div className={`scroll-quiet min-h-0 flex-1 overflow-y-auto ${tab === "quiz" ? "" : "hidden"}`}>
-                <QuizTab chapters={chapters} />
+                <QuizTab lectureId={lecture.id} chapters={chapters} />
               </div>
               <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${tab === "notes" ? "" : "hidden"}`}>
                 <NotesEditor storageKey={`lecture:${lecture.id}`} withTimestamps placeholder="Your notes on this lecture. Stamp the video time to come back to a moment." />

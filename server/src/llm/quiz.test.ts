@@ -8,31 +8,40 @@ const question = (blockId = "F02", options = [option("a", true), option("b"), op
   explanation: "e",
   blockId,
 });
+const quiz = (questions: ReturnType<typeof question>[]) => ({ covered: true, notCoveredReason: null, questions });
 
 describe("checkQuiz", () => {
-  const blocks = new Set(["F02", "F03"]);
+  const blocks = new Set(["F02", "F03", "F40"]);
 
-  it("accepts a well-formed quiz", () => {
-    expect(checkQuiz({ questions: [question(), question(), question("F03")] }, blocks)).toEqual([]);
+  it("accepts a well-formed quiz, from any part of the lecture", () => {
+    expect(checkQuiz(quiz([question(), question("F40"), question("F03")]), blocks, 3)).toEqual([]);
   });
 
-  it("rejects wrong counts, missing notes and blocks outside the chapter", () => {
+  it("accepts one question fewer than asked, not more", () => {
+    expect(checkQuiz(quiz([question(), question()]), blocks, 3)).toEqual([]);
+    expect(checkQuiz(quiz([question(), question(), question(), question()]), blocks, 3)).toContain("expected 3 questions, got 4");
+  });
+
+  it("rejects wrong counts of correct options, missing notes and unknown blocks", () => {
     const problems = checkQuiz(
-      {
-        questions: [
-          question("F02", [option("a", true), option("b", true), option("c"), option("d")]),
-          question("F02", [option("a", true), { text: "b", correct: false, misconception: null }, option("c"), option("d")]),
-          question("F09"),
-        ],
-      },
+      quiz([
+        question("F02", [option("a", true), option("b", true), option("c"), option("d")]),
+        question("F02", [option("a", true), { text: "b", correct: false, misconception: null }, option("c"), option("d")]),
+        question("F99"),
+      ]),
       blocks,
+      3,
     );
     expect(problems).toEqual([
       "question 1 has 2 correct options, not 1",
       "question 2 has a wrong option without a misconception note",
-      "question 3 cites F09, which is not in this chapter",
+      "question 3 cites F99, which is not a block in this lecture",
     ]);
-    expect(checkQuiz({ questions: [question()] }, blocks)).toContain("expected 3 to 5 questions, got 1");
+  });
+
+  it("accepts 'not covered' only with a reason", () => {
+    expect(checkQuiz({ covered: false, notCoveredReason: "It covers the column picture instead.", questions: [] }, blocks, 5)).toEqual([]);
+    expect(checkQuiz({ covered: false, notCoveredReason: null, questions: [] }, blocks, 5)).toHaveLength(1);
   });
 });
 

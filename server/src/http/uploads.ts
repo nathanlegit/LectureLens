@@ -27,11 +27,15 @@ const byteLimit = (max: number) => {
 const NewModule = z.object({ name: z.string().trim().min(1).max(120) });
 const Week = z.coerce.number().int().min(1).max(60);
 const LectureEdit = z.object({ title: z.string().trim().min(1).max(200).optional(), week: Week.nullable().optional() });
+const WeekEdit = z.object({ title: z.string().trim().max(80).nullable().optional() });
 
 /** Writes: create modules, upload recordings, retry failed lectures. All behind the passcode. */
 export function uploadRoutes(db: DB, dataDir: string) {
   const app = new Hono();
   app.use("*", requirePasscode);
+
+  // Weeks are rows of their own so that empty weeks and week names persist.
+  const ensureWeek = db.prepare("INSERT OR IGNORE INTO weeks (moduleId, week) VALUES (?, ?)");
 
   app.post("/modules", async (c) => {
     const parsed = NewModule.safeParse(await c.req.json().catch(() => null));
@@ -66,6 +70,7 @@ export function uploadRoutes(db: DB, dataDir: string) {
     }
     // Only now does the lecture exist for the job runner: it never sees a half-written file.
     db.prepare("INSERT INTO lectures (id, moduleId, title, status, week) VALUES (?, ?, ?, 'queued', ?)").run(id, moduleId, title, week);
+    if (week !== null) ensureWeek.run(moduleId, week);
     return c.json({ id, title });
   });
 
@@ -91,7 +96,59 @@ export function uploadRoutes(db: DB, dataDir: string) {
     if (!db.prepare("SELECT 1 FROM lectures WHERE id = ?").get(id)) return c.json({ error: "Lecture not found" }, 404);
     const { title, week } = parsed.data;
     if (title !== undefined) db.prepare("UPDATE lectures SET title = ? WHERE id = ?").run(title, id);
-    if (week !== undefined) db.prepare("UPDATE lectures SET week = ? WHERE id = ?").run(week, id);
+    if (week !== undefined) {
+      db.prepare("UPDATE lectures SET week = ? WHERE id = ?").run(week, id);
+      if (week !== null) {
+        const { moduleId } = db.prepare("SELECT moduleId FROM lectures WHERE id = ?").get(id) as { moduleId: string };
+        ensureWeek.run(moduleId, week);
+      }
+    }
+    return c.json({ ok: true });
+  });
+
+  app.post("/modules/:id", async (c) => {
+    const id = c.req.param("id");
+    const parsed = NewModule.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "A module name is required" }, 400);
+    const res = db.prepare("UPDATE modules SET name = ? WHERE id = ?").run(parsed.data.name, id);
+    if (res.changes === 0) return c.json({ error: "Module not found" }, 404);
+    return c.json({ ok: true });
+  });
+
+  app.post("/modules/:id/delete", (c) => {
+    const id = c.req.param("id");
+    const lectures = db.prepare("SELECT id, status FROM lectures WHERE moduleId = ?").all(id) as { id: string; status: string }[];
+    if (lectures.some((l) => !["ready", "failed", "queued"].includes(l.status))) {
+      return c.json({ error: "A lecture in this module is being processed. Wait for it to finish, then delete the module." }, 409);
+    }
+    db.prepare("DELETE FROM modules WHERE id = ?").run(id); // cascades to lectures, weeks and their rows
+    for (const l of lectures) rmSync(join(dataDir, l.id), { recursive: true, force: true });
+    return c.json({ ok: true });
+  });
+
+  // Create a week, or rename it (title null or "" resets it to "Week N").
+  app.post("/modules/:id/weeks/:week", async (c) => {
+    const id = c.req.param("id");
+    const week = Week.safeParse(c.req.param("week"));
+    const parsed = WeekEdit.safeParse(await c.req.json().catch(() => ({})));
+    if (!week.success || !parsed.success) return c.json({ error: "Invalid week" }, 400);
+    if (!db.prepare("SELECT 1 FROM modules WHERE id = ?").get(id)) return c.json({ error: "Module not found" }, 404);
+    ensureWeek.run(id, week.data);
+    if (parsed.data.title !== undefined) {
+      db.prepare("UPDATE weeks SET title = ? WHERE moduleId = ? AND week = ?").run(parsed.data.title || null, id, week.data);
+    }
+    return c.json({ ok: true });
+  });
+
+  // Delete a week; its lectures are kept and move to "No week".
+  app.post("/modules/:id/weeks/:week/delete", (c) => {
+    const id = c.req.param("id");
+    const week = Week.safeParse(c.req.param("week"));
+    if (!week.success) return c.json({ error: "Invalid week" }, 400);
+    db.transaction(() => {
+      db.prepare("UPDATE lectures SET week = NULL WHERE moduleId = ? AND week = ?").run(id, week.data);
+      db.prepare("DELETE FROM weeks WHERE moduleId = ? AND week = ?").run(id, week.data);
+    })();
     return c.json({ ok: true });
   });
 

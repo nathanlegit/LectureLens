@@ -28,6 +28,8 @@ export function Player({ lectureId, posterFrameId }: { lectureId: string; poster
       playsInline
       onTimeUpdate={(e) => playerBus.reportTime(e.currentTarget.currentTime)}
       className="aspect-video w-full rounded-xl bg-black"
-    />
+    >
+      <track kind="captions" src={`/api/lectures/${lectureId}/captions.vtt`} srcLang="en" label="English" default />
+    </video>
   );
 }

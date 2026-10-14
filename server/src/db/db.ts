@@ -24,6 +24,36 @@ const MIGRATIONS: ((db: DB) => void)[] = [
       ALTER TABLE lectures ADD COLUMN week INTEGER;
       ALTER TABLE lectures ADD COLUMN summary TEXT;
     `),
+  // 4: weeks that exist (even empty) with editable titles; quizzes on any topic, not one per chapter.
+  // quiz_questions (per chapter) is superseded by quiz_items and left unused.
+  (db) =>
+    db.exec(`
+      CREATE TABLE weeks (
+        moduleId  TEXT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
+        week      INTEGER NOT NULL,
+        title     TEXT,
+        PRIMARY KEY (moduleId, week)
+      );
+      INSERT OR IGNORE INTO weeks (moduleId, week) SELECT DISTINCT moduleId, week FROM lectures WHERE week IS NOT NULL;
+      CREATE TABLE quizzes (
+        id         TEXT PRIMARY KEY,
+        lectureId  TEXT NOT NULL REFERENCES lectures(id) ON DELETE CASCADE,
+        topic      TEXT NOT NULL,
+        createdAt  TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE quiz_items (
+        id              TEXT PRIMARY KEY,
+        quizId          TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+        idx             INTEGER NOT NULL,
+        question        TEXT NOT NULL,
+        options         TEXT NOT NULL,
+        answerIdx       INTEGER NOT NULL,
+        explanation     TEXT NOT NULL,
+        misconceptions  TEXT NOT NULL,
+        blockId         TEXT NOT NULL,
+        atSec           REAL NOT NULL
+      );
+    `),
 ];
 
 export function migrate(db: DB) {

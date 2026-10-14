@@ -17,7 +17,7 @@ export function Home() {
   const search = useSearch();
   const [creating, setCreating] = useState(search.includes("new=module"));
 
-  const lectures = (modules ?? []).flatMap((m) => m.lectures.map((l) => ({ ...l, moduleName: m.name })));
+  const lectures = (modules ?? []).flatMap((m) => m.lectures.map((l) => ({ ...l, moduleName: m.name, weekName: weekLabel(l.week, m.weeks) })));
   const recent = lectures
     .filter((l) => l.status === "ready")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -52,7 +52,7 @@ export function Home() {
           <SectionLabel icon={<Icon.clock className="h-3.5 w-3.5" />}>Recently added</SectionLabel>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {recent.map((l) => (
-              <LectureCard key={l.id} lecture={l} moduleName={l.moduleName} />
+              <LectureCard key={l.id} lecture={l} moduleName={l.moduleName} weekName={l.weekName} />
             ))}
           </div>
         </section>
@@ -102,7 +102,7 @@ function SectionLabel({ icon, children }: { icon: ReactNode; children: ReactNode
   );
 }
 
-function LectureCard({ lecture: l, moduleName }: { lecture: Lecture; moduleName: string }) {
+function LectureCard({ lecture: l, moduleName, weekName }: { lecture: Lecture; moduleName: string; weekName: string }) {
   return (
     <Link href={`/lectures/${l.id}`} className="card group overflow-hidden">
       <div className="relative aspect-video overflow-hidden bg-sand">
@@ -116,7 +116,7 @@ function LectureCard({ lecture: l, moduleName }: { lecture: Lecture; moduleName:
       <div className="px-3.5 py-3">
         <p className="line-clamp-2 text-sm font-medium leading-snug">{l.title}</p>
         <p className="mt-1 truncate text-xs text-muted">
-          {moduleName} · {weekLabel(l.week)}
+          {moduleName} · {weekName}
         </p>
       </div>
     </Link>

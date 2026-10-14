@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
-import type { AskEvent, Chapter, ChatMessage, Lecture, LectureDetail, Module, ModuleWithLectures, QuizQuestion } from "@lecture-lens/shared";
+import type { AskEvent, Chapter, ChatMessage, Lecture, LectureDetail, Module, ModuleWithLectures, Quiz, QuizNotCovered, Segment, WeekInfo } from "@lecture-lens/shared";
 import type { DB } from "../db/db.ts";
 import { ask } from "../llm/ask.ts";
-import { generateQuiz, getQuiz } from "../llm/quiz.ts";
+import { generateQuiz, listQuizzes } from "../llm/quiz.ts";
+import { toVtt } from "./captions.ts";
 import { rateLimit, spendCap } from "./guard.ts";
 
 type LectureRowDb = Omit<Lecture, "isSeed"> & { isSeed: number };
@@ -13,19 +14,25 @@ const LECTURE_COLS = `id, moduleId, title, durationSec, status, failedStage, err
   (SELECT f.id FROM frames f WHERE f.lectureId = lectures.id ORDER BY abs(f.atSec - lectures.durationSec * 0.15) LIMIT 1) AS thumbFrameId`;
 
 const AskBody = z.object({ question: z.string().trim().min(1).max(2000), mode: z.enum(["tell", "guide"]).default("tell") });
+const QuizBody = z.object({ topic: z.string().trim().min(1).max(300), count: z.coerce.number().int().min(3).max(10).default(5) });
 
 export function apiRoutes(db: DB) {
   const api = new Hono();
   const askLimit = rateLimit("question", 10, 60_000);
   const quizLimit = rateLimit("quiz", 5, 60_000);
   const cap = spendCap(db);
-  // One generation per chapter at a time: a double click must not pay twice.
-  const quizInFlight = new Map<string, Promise<QuizQuestion[]>>();
+  // One generation per lecture and topic at a time: a double click must not pay twice.
+  const quizInFlight = new Map<string, Promise<Quiz | QuizNotCovered>>();
 
   api.get("/modules", (c) => {
     const modules = db.prepare("SELECT id, name, glossary, createdAt FROM modules ORDER BY createdAt").all() as Module[];
     const lectures = (db.prepare(`SELECT ${LECTURE_COLS} FROM lectures ORDER BY week IS NULL, week, createdAt`).all() as LectureRowDb[]).map(toLecture);
-    const body: ModuleWithLectures[] = modules.map((m) => ({ ...m, lectures: lectures.filter((l) => l.moduleId === m.id) }));
+    const weeks = db.prepare("SELECT moduleId, week, title FROM weeks ORDER BY week").all() as (WeekInfo & { moduleId: string })[];
+    const body: ModuleWithLectures[] = modules.map((m) => ({
+      ...m,
+      lectures: lectures.filter((l) => l.moduleId === m.id),
+      weeks: weeks.filter((w) => w.moduleId === m.id).map(({ week, title }) => ({ week, title })),
+    }));
     return c.json(body);
   });
 
@@ -74,24 +81,45 @@ export function apiRoutes(db: DB) {
     });
   });
 
-  api.get("/chapters/:id/quiz", (c) => c.json(getQuiz(db, c.req.param("id"))));
+  // Anyone can start a fresh conversation; the chat is shared by everyone viewing this lecture.
+  api.post("/lectures/:id/messages/clear", askLimit, (c) => {
+    db.prepare("DELETE FROM messages WHERE lectureId = ?").run(c.req.param("id"));
+    return c.json({ ok: true });
+  });
 
-  // Generates the quiz the first time (or again with ?regenerate=1); otherwise returns the stored one.
-  api.post("/chapters/:id/quiz", quizLimit, cap, async (c) => {
+  const segments = (id: string) =>
+    db.prepare("SELECT startSec, endSec, text FROM transcript_segments WHERE lectureId = ? ORDER BY startSec").all(id) as Segment[];
+
+  api.get("/lectures/:id/transcript", (c) => c.json(segments(c.req.param("id"))));
+
+  api.get("/lectures/:id/captions.vtt", (c) => {
+    c.header("Content-Type", "text/vtt; charset=utf-8");
+    c.header("Cache-Control", "no-cache");
+    return c.body(toVtt(segments(c.req.param("id"))));
+  });
+
+  api.get("/lectures/:id/quizzes", (c) => c.json(listQuizzes(db, c.req.param("id"))));
+
+  // A new quiz on any topic. Returns the quiz, or { notCovered } when the lecture doesn't cover the topic.
+  api.post("/lectures/:id/quizzes", quizLimit, cap, async (c) => {
     const id = c.req.param("id");
-    if (!db.prepare("SELECT 1 FROM chapters WHERE id = ?").get(id)) return c.json({ error: "Chapter not found" }, 404);
-    const existing = getQuiz(db, id);
-    if (existing.length > 0 && c.req.query("regenerate") !== "1") return c.json(existing);
-    let job = quizInFlight.get(id);
+    const parsed = QuizBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Say what the quiz should be about" }, 400);
+    const lecture = db.prepare("SELECT status FROM lectures WHERE id = ?").get(id) as { status: string } | undefined;
+    if (!lecture) return c.json({ error: "Lecture not found" }, 404);
+    if (lecture.status !== "ready") return c.json({ error: "This lecture is still processing" }, 409);
+    const { topic, count } = parsed.data;
+    const key = `${id}\n${topic.toLowerCase()}\n${count}`;
+    let job = quizInFlight.get(key);
     if (!job) {
-      job = generateQuiz(db, id).finally(() => quizInFlight.delete(id));
-      quizInFlight.set(id, job);
+      job = generateQuiz(db, id, topic, count).finally(() => quizInFlight.delete(key));
+      quizInFlight.set(key, job);
     }
     try {
       return c.json(await job);
     } catch (err) {
       console.error(`quiz ${id} failed`, err);
-      return c.json({ error: "Couldn't write a quiz for this chapter. Try again." }, 502);
+      return c.json({ error: "Couldn't write that quiz. Try again, or rephrase the topic." }, 502);
     }
   });
 

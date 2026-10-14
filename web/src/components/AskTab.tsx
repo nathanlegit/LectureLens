@@ -81,6 +81,12 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
     void submit(input);
   };
 
+  const newChat = async () => {
+    if (!window.confirm("Start a new chat? This clears the conversation for this lecture.")) return;
+    await fetch(`/api/lectures/${lectureId}/messages/clear`, { method: "POST" });
+    await queryClient.invalidateQueries({ queryKey: messagesKey });
+  };
+
   const last = messages.at(-1);
   const offerLadder = !pending && last?.role === "assistant" && last.mode === "guide";
   const suggestions = chapters.slice(1, 4).map((c) => `Explain “${c.title}”`);
@@ -88,6 +94,13 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
   return (
     <div className="flex h-full flex-col">
       <div className="scroll-quiet flex-1 space-y-6 overflow-y-auto p-4">
+        {messages.length > 0 && !pending && (
+          <div className="-mt-1 -mb-3 flex justify-end">
+            <button type="button" onClick={() => void newChat()} className="btn btn-ghost btn-sm -mr-2">
+              <Icon.plus className="h-3.5 w-3.5" /> New chat
+            </button>
+          </div>
+        )}
         {messages.length === 0 && !pending && (
           <div className="pt-4">
             <p className="font-medium">Ask this lecture</p>

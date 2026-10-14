@@ -99,8 +99,28 @@ export interface LectureDetail {
   frames: Pick<Frame, "id" | "atSec" | "kind">[];
 }
 
+export interface WeekInfo {
+  week: number;
+  /** A custom name ("Reading week", "Eigenvalues"); null shows "Week N". */
+  title: string | null;
+}
+
 export interface ModuleWithLectures extends Module {
   lectures: Lecture[];
+  /** Every week the module has, including empty ones, in order. */
+  weeks: WeekInfo[];
+}
+
+export interface Quiz {
+  id: string;
+  topic: string;
+  createdAt: string;
+  questions: QuizQuestion[];
+}
+
+/** Returned instead of a quiz when the lecture does not cover the requested topic. */
+export interface QuizNotCovered {
+  notCovered: string;
 }
 
 /** Events on the Ask SSE stream. */

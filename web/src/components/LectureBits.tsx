@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import type { Lecture, Stage } from "@lecture-lens/shared";
+import type { Lecture, Stage, WeekInfo } from "@lecture-lens/shared";
 import { postWrite } from "../lib/api";
+import { weekLabel } from "../lib/modules";
 
 export const STAGE_LABELS: Record<Stage | "queued", string> = {
   queued: "Waiting to start",
@@ -82,9 +83,10 @@ export function DeleteLectureButton({ lecture, onDeleted, className = "" }: { le
   );
 }
 
-/** Moves a lecture to another week (or none). */
-export function WeekSelect({ lecture, maxWeek, onMoved }: { lecture: Lecture; maxWeek: number; onMoved: () => void }) {
-  const weeks = Array.from({ length: Math.max(maxWeek + 1, 12) }, (_, i) => i + 1);
+/** Moves a lecture to one of the module's weeks, a new week, or none. */
+export function WeekSelect({ lecture, weeks, onMoved }: { lecture: Lecture; weeks: WeekInfo[]; onMoved: () => void }) {
+  const numbers = [...new Set([...weeks.map((w) => w.week), ...(lecture.week !== null ? [lecture.week] : [])])].sort((a, b) => a - b);
+  const next = Math.max(0, ...numbers) + 1;
   return (
     <select
       aria-label={`Week for ${lecture.title}`}
@@ -98,11 +100,12 @@ export function WeekSelect({ lecture, maxWeek, onMoved }: { lecture: Lecture; ma
       className="rounded-md bg-transparent px-1 py-1 text-xs text-muted transition-colors hover:bg-press"
     >
       <option value="">No week</option>
-      {weeks.map((w) => (
+      {numbers.map((w) => (
         <option key={w} value={w}>
-          Week {w}
+          {weekLabel(w, weeks)}
         </option>
       ))}
+      <option value={next}>+ New week ({next})</option>
     </select>
   );
 }
