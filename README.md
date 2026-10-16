@@ -6,7 +6,7 @@ You upload a lecture recording and it transcribes it, reads what is written on t
 
 Live demo: https://lecture-lens-production.up.railway.app
 
-![Lecture view](web/public/landing/lecture-view.jpg)
+![Asking a question in Guide me mode, with timestamps that jump the video](docs/screenshots/ask.jpg)
 
 ## Why I made this
 
@@ -26,6 +26,28 @@ I wanted something that actually looks at the board, shows you where in the lect
 - **Transcript and captions** under the video, synced as it plays and searchable.
 - **Notes** per lecture and per module, with Markdown, math and timestamps you can click to jump the video.
 - Modules and weeks to keep everything organised, plus light and dark mode.
+
+## Screenshots
+
+**Library.** All your lectures and modules in one place.
+
+![Library](docs/screenshots/library.jpg)
+
+**Summary** (in dark mode). The overview and chapters, with the equations from the board.
+
+![Summary tab in dark mode](docs/screenshots/summary-dark.jpg)
+
+**Quiz.** Get one wrong and it tells you what you probably mixed up, plus where to rewatch.
+
+![Quiz feedback on a wrong answer](docs/screenshots/quiz.jpg)
+
+**Notes.** Markdown and math, and the timestamps jump the video.
+
+![Lecture notes](docs/screenshots/notes.jpg)
+
+**Module page.** Lectures sorted into weeks, with notes for the whole module.
+
+![Module page](docs/screenshots/module.jpg)
 
 ## How it works
 
@@ -93,7 +115,7 @@ YouTube links are turned off on the deployed server (`LINK_IMPORT=false`) becaus
 server/   API, processing pipeline, job runner, SQLite
 web/      React app
 shared/   types used by both
-docs/     the original product doc
+docs/     the original product doc and screenshots
 ```
 
 ## Credits

@@ -8,3 +8,4 @@ models/
 demo/
 seed-*.tar
 .claude/
+*.mov
