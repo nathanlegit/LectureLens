@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { Lecture, ModuleWithLectures } from "@lecture-lens/shared";
-import { groupWeeks, isProcessing, useModules } from "../lib/modules";
+import { displayTitle, groupWeeks, isProcessing, useModules } from "../lib/modules";
 import { Icon, Logo } from "./Brand";
 
 const OPEN_KEY = "lecture-lens-sidebar-open";
@@ -141,7 +141,7 @@ function ModuleBranch({
                     {lectures.length === 0 && <p className="py-1 pl-7 text-xs text-faint">Empty</p>}
                     {lectures.map((l) => (
                       <NavItem key={l.id} href={`/lectures/${l.id}`} active={location === `/lectures/${l.id}`} icon={<LectureDot lecture={l} />}>
-                        {l.title}
+                        {displayTitle(l)}
                       </NavItem>
                     ))}
                   </div>

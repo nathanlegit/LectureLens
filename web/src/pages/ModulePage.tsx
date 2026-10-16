@@ -3,11 +3,12 @@ import { Link, useLocation } from "wouter";
 import type { Lecture, WeekInfo } from "@lecture-lens/shared";
 import { LectureDot, ModuleIcon } from "../components/AppShell";
 import { Icon } from "../components/Brand";
+import { AddLectureMenu, LinkDialog } from "../components/AddLecture";
 import { EditableText, MoreMenu } from "../components/Editable";
 import { Bar, DeleteLectureButton, ProcessingStatus, WeekSelect } from "../components/LectureBits";
 import { NotesEditor } from "../components/NotesEditor";
 import { formatTime, postWrite, uploadLecture } from "../lib/api";
-import { defaultWeekLabel, groupWeeks, isProcessing, useModules, useRefreshModules } from "../lib/modules";
+import { defaultWeekLabel, displayTitle, groupWeeks, isProcessing, useModules, useRefreshModules, weekLabel } from "../lib/modules";
 
 interface Upload {
   week: number | null;
@@ -24,6 +25,8 @@ export function ModulePage({ id }: { id: string }) {
   const [upload, setUpload] = useState<Upload | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [renamingWeek, setRenamingWeek] = useState<number | null>(null);
+  // The week a link import goes into; undefined while the dialog is closed.
+  const [linkWeek, setLinkWeek] = useState<number | null | undefined>(undefined);
 
   const m = modules?.find((x) => x.id === id);
   if (isPending) return <p className="p-12 text-sm text-muted">Loading…</p>;
@@ -123,9 +126,7 @@ export function ModulePage({ id }: { id: string }) {
                 )}
               </h2>
               <span className="flex shrink-0 items-center gap-0.5">
-                <button type="button" disabled={upload !== null} onClick={() => pick(week)} className="btn btn-ghost btn-sm">
-                  <Icon.upload className="h-3.5 w-3.5" /> Add lecture
-                </button>
+                <AddLectureMenu disabled={upload !== null} onFile={() => pick(week)} onLink={() => setLinkWeek(week)} />
                 {week !== null && (
                   <MoreMenu
                     label={`Actions for ${label}`}
@@ -159,13 +160,7 @@ export function ModulePage({ id }: { id: string }) {
               )}
               {lectures.length === 0 && !(upload && upload.week === week) && (
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => pick(week)}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-faint transition-colors hover:bg-hover hover:text-muted"
-                  >
-                    <Icon.plus className="h-4 w-4" /> Upload a recording
-                  </button>
+                  <AddLectureMenu compact disabled={upload !== null} onFile={() => pick(week)} onLink={() => setLinkWeek(week)} />
                 </li>
               )}
             </ul>
@@ -179,6 +174,14 @@ export function ModulePage({ id }: { id: string }) {
           <Icon.plus className="h-3.5 w-3.5" /> New week
         </button>
       </div>
+
+      {linkWeek !== undefined && (
+        <LinkDialog
+          weekName={weekLabel(linkWeek, m.weeks)}
+          onClose={() => setLinkWeek(undefined)}
+          onSubmit={(url, title) => postWrite(`/modules/${m.id}/lectures/from-link`, { url, title: title || undefined, week: linkWeek }).then(refresh)}
+        />
+      )}
 
       <section className="mt-14">
         <h2 className="border-b border-line pb-1.5 font-semibold tracking-tight">Notes</h2>
@@ -205,12 +208,12 @@ function LectureRow({ lecture: l, weeks, onChange }: { lecture: Lecture; weeks: 
           <EditableText label="Lecture title" value={l.title} onSave={rename} editing onEditingChange={setRenaming} className="text-[15px]" />
         ) : ready ? (
           <Link href={`/lectures/${l.id}`} className="flex items-center justify-between gap-4">
-            <span className="truncate text-[15px]">{l.title}</span>
+            <span className="truncate text-[15px]">{displayTitle(l)}</span>
             <span className="shrink-0 font-mono text-xs text-faint tabular-nums">{l.durationSec ? formatTime(l.durationSec) : ""}</span>
           </Link>
         ) : (
           <>
-            <span className="block truncate text-[15px]">{l.title}</span>
+            <span className="block truncate text-[15px]">{displayTitle(l)}</span>
             <ProcessingStatus lecture={l} onChange={onChange} />
           </>
         )}

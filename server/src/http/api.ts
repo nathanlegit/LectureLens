@@ -10,7 +10,7 @@ import { rateLimit, spendCap } from "./guard.ts";
 
 type LectureRowDb = Omit<Lecture, "isSeed"> & { isSeed: number };
 const toLecture = ({ isSeed, ...rest }: LectureRowDb): Lecture => ({ ...rest, isSeed: isSeed === 1 });
-const LECTURE_COLS = `id, moduleId, title, durationSec, status, failedStage, error, stageDone, stageTotal, isSeed, createdAt, week, summary,
+const LECTURE_COLS = `id, moduleId, title, durationSec, status, failedStage, error, stageDone, stageTotal, isSeed, createdAt, week, summary, sourceUrl,
   (SELECT f.id FROM frames f WHERE f.lectureId = lectures.id ORDER BY abs(f.atSec - lectures.durationSec * 0.15) LIMIT 1) AS thumbFrameId`;
 
 const AskBody = z.object({ question: z.string().trim().min(1).max(2000), mode: z.enum(["tell", "guide"]).default("tell") });

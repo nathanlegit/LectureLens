@@ -31,6 +31,8 @@ export interface Lecture {
   summary: string | null;
   /** A frame about 15% in (past any title card), for thumbnails; null until frames exist. */
   thumbFrameId: string | null;
+  /** The YouTube link it was imported from; null for uploads. */
+  sourceUrl: string | null;
 }
 
 export interface Segment {

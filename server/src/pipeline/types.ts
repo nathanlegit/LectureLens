@@ -10,6 +10,7 @@ export interface LectureRow {
   status: LectureStatus;
   failedStage: Stage | null;
   error: string | null;
+  sourceUrl: string | null;
 }
 
 export interface StageContext {

@@ -12,7 +12,7 @@ import { QuizTab } from "../components/QuizTab";
 import { SummaryTab } from "../components/SummaryTab";
 import { Transcript } from "../components/Transcript";
 import { formatTime, getJSON, postWrite } from "../lib/api";
-import { useModules, weekLabel } from "../lib/modules";
+import { displayTitle, useModules, weekLabel } from "../lib/modules";
 import { usePlayerTime } from "../lib/playerBus";
 
 type Tab = "summary" | "ask" | "quiz" | "notes";
@@ -58,13 +58,13 @@ export function LectureView({ id }: { id: string }) {
           <span className="text-faint">/</span>
           <span className="shrink-0 px-1.5">{weekLabel(lecture.week, module?.weeks)}</span>
           <span className="text-faint">/</span>
-          <span className="truncate px-1.5 text-ink">{lecture.title}</span>
+          <span className="truncate px-1.5 text-ink">{displayTitle(lecture)}</span>
         </nav>
 
         {lecture.status !== "ready" ? (
           <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
             <h1 className="display text-[2rem]">
-              <EditableText label="Lecture title" value={lecture.title} onSave={rename} />
+              <EditableText label="Lecture title" value={displayTitle(lecture)} onSave={rename} />
             </h1>
             <div className="card mt-8 max-w-md p-4">
               <ProcessingStatus lecture={lecture} onChange={() => void refetch()} />
@@ -75,7 +75,7 @@ export function LectureView({ id }: { id: string }) {
           <div className="grid min-h-0 flex-1 gap-6 px-4 pb-4 md:px-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,1fr)]">
             <section className="scroll-quiet flex min-w-0 flex-col pt-4 xl:min-h-0 xl:overflow-y-auto">
               <h1 className="display text-[1.75rem] md:text-[2rem]">
-                <EditableText label="Lecture title" value={lecture.title} onSave={rename} />
+                <EditableText label="Lecture title" value={displayTitle(lecture)} onSave={rename} />
               </h1>
               <p className="mt-1.5 mb-5 text-sm text-muted">
                 {lecture.durationSec ? `${formatTime(lecture.durationSec)} · ` : ""}

@@ -4,6 +4,13 @@ import { getJSON } from "./api";
 
 export const isProcessing = (l: Lecture) => l.status !== "ready" && l.status !== "failed";
 
+export const sourceName = (url: string | null) =>
+  !url ? null : /youtu\.?be/i.test(url) ? "YouTube" : "a link";
+
+/** A lecture's title; one imported from a link has none until the video's own name is known. */
+export const displayTitle = (l: Pick<Lecture, "title" | "sourceUrl">) =>
+  l.title.trim() || (l.sourceUrl ? `Importing from ${sourceName(l.sourceUrl)}…` : "Untitled lecture");
+
 /** All modules with their lectures; polls while anything is processing so progress stays live everywhere. */
 export function useModules() {
   return useQuery({

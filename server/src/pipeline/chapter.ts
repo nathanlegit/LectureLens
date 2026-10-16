@@ -11,7 +11,7 @@ const ChaptersSchema = z.object({
 });
 type ChaptersOutput = z.infer<typeof ChaptersSchema>;
 
-const INSTRUCTIONS = `Split this lecture into 5 to 12 chapters, in order, so a student can see in two minutes what it covered.
+const INSTRUCTIONS = `Split this lecture into 5 to 12 chapters, in order, so a student can see in two minutes what it covered. A short recording with fewer than 5 blocks gets fewer chapters: at most one per block.
 - Each chapter starts at a block: give that block's ID as startBlockId. The first chapter starts at the first block.
 - Title: a few words naming the topic, as the lecturer would ("Row picture of 2x2 systems"), not "Introduction" or "Part 2".
 - Summary: 1 to 2 sentences on what is taught, including the key equation or result if there is one (LaTeX in $...$).
@@ -22,7 +22,9 @@ export function checkChapters(out: ChaptersOutput, ctx: LectureContext): string[
   const problems: string[] = [];
   const order = ctx.blocks.map((b) => b.id);
   const n = out.chapters.length;
-  if (n < 5 || n > 12) problems.push(`expected 5 to 12 chapters, got ${n}`);
+  // Short recordings (a clip, a 3-minute explainer) cannot fill 5 chapters.
+  const min = Math.min(5, ctx.blocks.length);
+  if (n < min || n > 12) problems.push(`expected ${min} to 12 chapters, got ${n}`);
   const idx = out.chapters.map((c) => order.indexOf(c.startBlockId));
   out.chapters.forEach((c, i) => {
     if (idx[i] === -1) problems.push(`chapter "${c.title}" starts at unknown block ${c.startBlockId}`);

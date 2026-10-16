@@ -54,6 +54,8 @@ const MIGRATIONS: ((db: DB) => void)[] = [
         atSec           REAL NOT NULL
       );
     `),
+  // 5: lectures imported from a YouTube link rather than uploaded.
+  (db) => db.exec("ALTER TABLE lectures ADD COLUMN sourceUrl TEXT;"),
 ];
 
 export function migrate(db: DB) {

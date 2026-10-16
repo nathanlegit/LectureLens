@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { config } from "../config.ts";
 import type { DB } from "../db/db.ts";
+import { parseSourceUrl } from "../pipeline/sources.ts";
 import { UPLOAD_FILE } from "../pipeline/types.ts";
 import { requirePasscode } from "./guard.ts";
 
@@ -28,6 +29,7 @@ const NewModule = z.object({ name: z.string().trim().min(1).max(120) });
 const Week = z.coerce.number().int().min(1).max(60);
 const LectureEdit = z.object({ title: z.string().trim().min(1).max(200).optional(), week: Week.nullable().optional() });
 const WeekEdit = z.object({ title: z.string().trim().max(80).nullable().optional() });
+const FromLink = z.object({ url: z.string().trim().min(1).max(2000), title: z.string().trim().max(200).optional(), week: Week.nullable().optional() });
 
 /** Writes: create modules, upload recordings, retry failed lectures. All behind the passcode. */
 export function uploadRoutes(db: DB, dataDir: string) {
@@ -74,14 +76,38 @@ export function uploadRoutes(db: DB, dataDir: string) {
     return c.json({ id, title });
   });
 
+  // Import from a YouTube link. The lecture exists at once; the job runner downloads it.
+  app.post("/modules/:moduleId/lectures/from-link", async (c) => {
+    const moduleId = c.req.param("moduleId");
+    if (!db.prepare("SELECT 1 FROM modules WHERE id = ?").get(moduleId)) return c.json({ error: "Module not found" }, 404);
+    const parsed = FromLink.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Paste a YouTube link" }, 400);
+    if (!parseSourceUrl(parsed.data.url)) {
+      return c.json({ error: "That isn't a YouTube video link. Playlists aren't supported." }, 400);
+    }
+    const id = randomUUID().slice(0, 8);
+    mkdirSync(join(dataDir, id), { recursive: true });
+    const week = parsed.data.week ?? null;
+    // An empty title means "use the video's own name once it's known".
+    db.prepare("INSERT INTO lectures (id, moduleId, title, status, week, sourceUrl) VALUES (?, ?, ?, 'queued', ?, ?)").run(
+      id,
+      moduleId,
+      parsed.data.title ?? "",
+      week,
+      parsed.data.url,
+    );
+    if (week !== null) ensureWeek.run(moduleId, week);
+    return c.json({ id });
+  });
+
   app.post("/lectures/:id/retry", (c) => {
     const id = c.req.param("id");
-    const row = db.prepare("SELECT status, failedStage FROM lectures WHERE id = ?").get(id) as
-      | { status: string; failedStage: string | null }
+    const row = db.prepare("SELECT status, failedStage, sourceUrl FROM lectures WHERE id = ?").get(id) as
+      | { status: string; failedStage: string | null; sourceUrl: string | null }
       | undefined;
     if (!row) return c.json({ error: "Lecture not found" }, 404);
     if (row.status !== "failed" || !row.failedStage) return c.json({ error: "Only a failed lecture can be retried" }, 409);
-    if (row.failedStage === "ingest" && !existsSync(join(dataDir, id, UPLOAD_FILE)) && !existsSync(join(dataDir, id, "video.mp4"))) {
+    if (row.failedStage === "ingest" && !row.sourceUrl && !existsSync(join(dataDir, id, UPLOAD_FILE)) && !existsSync(join(dataDir, id, "video.mp4"))) {
       return c.json({ error: "The uploaded file is gone; upload the recording again" }, 409);
     }
     db.prepare("UPDATE lectures SET status = failedStage, failedStage = NULL, error = NULL WHERE id = ?").run(id);

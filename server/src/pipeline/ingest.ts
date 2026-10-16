@@ -2,6 +2,7 @@ import { existsSync, rmSync } from "node:fs";
 import { config } from "../config.ts";
 import { join } from "node:path";
 import { ffprobe, run } from "../util/exec.ts";
+import { cleanDownloadParts, downloadSource, parseSourceUrl, sourceLabel } from "./sources.ts";
 import { UPLOAD_FILE, type StageFn } from "./types.ts";
 
 export const MAX_DURATION_SEC = 95 * 60;
@@ -20,7 +21,20 @@ export const ingest: StageFn = async ({ lecture, db, dir, progress, log }) => {
   if (!existsSync(source)) {
     // A rerun after a successful ingest: the upload was already replaced by video.mp4.
     if (existsSync(video)) return;
-    throw new Error("No uploaded file found");
+    if (!lecture.sourceUrl) throw new Error("No uploaded file found");
+    // Imported from a link: download it first, reporting progress as a percentage.
+    const src = parseSourceUrl(lecture.sourceUrl);
+    if (!src) throw new Error("That link isn't a YouTube video link");
+    cleanDownloadParts(dir);
+    log(`Downloading from ${sourceLabel(src)}`);
+    progress(0, 100);
+    const { title } = await downloadSource(src, source, {
+      maxBytes: config.MAX_UPLOAD_MB * 1024 ** 2,
+      maxDurationSec: MAX_DURATION_SEC,
+      onProgress: (f) => progress(Math.round(f * 100), 100),
+    });
+    // A lecture imported without a title takes the video's or file's own name.
+    if (!lecture.title.trim() && title) db.prepare("UPDATE lectures SET title = ? WHERE id = ?").run(title.slice(0, 200), lecture.id);
   }
 
   const probe = await ffprobe(source).catch(() => {

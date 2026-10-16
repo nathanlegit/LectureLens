@@ -58,6 +58,12 @@ describe("selectFrames", () => {
     expect(kept.map((k) => k.kind)).toEqual(["floor", "floor"]);
   });
 
+  it("keeps at least one frame of a short clip that never holds still", () => {
+    let seed = 7;
+    const noise = () => Uint8Array.from({ length: N }, () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), seed % 256));
+    expect(selectFrames(Array.from({ length: 19 }, noise))).toEqual([{ index: 9, kind: "floor" }]);
+  });
+
   it("respects the frame cap", () => {
     const frames = Array.from({ length: 200 }, (_, i) => repeat(slide(i + 2), 5)).flat();
     const kept = selectFrames(frames, { cap: 80 });

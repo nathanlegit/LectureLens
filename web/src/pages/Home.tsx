@@ -5,7 +5,7 @@ import { ModuleIcon } from "../components/AppShell";
 import { Icon } from "../components/Brand";
 import { NewModuleForm } from "../components/LectureBits";
 import { formatTime, frameUrl } from "../lib/api";
-import { useModules, weekLabel } from "../lib/modules";
+import { displayTitle, useModules, weekLabel } from "../lib/modules";
 
 function greeting() {
   const h = new Date().getHours();
@@ -114,7 +114,7 @@ function LectureCard({ lecture: l, moduleName, weekName }: { lecture: Lecture; m
         ) : null}
       </div>
       <div className="px-3.5 py-3">
-        <p className="line-clamp-2 text-sm font-medium leading-snug">{l.title}</p>
+        <p className="line-clamp-2 text-sm font-medium leading-snug">{displayTitle(l)}</p>
         <p className="mt-1 truncate text-xs text-muted">
           {moduleName} · {weekName}
         </p>

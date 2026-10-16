@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
 import type { Lecture, Stage, WeekInfo } from "@lecture-lens/shared";
 import { postWrite } from "../lib/api";
-import { weekLabel } from "../lib/modules";
+import { sourceName, weekLabel } from "../lib/modules";
 
 export const STAGE_LABELS: Record<Stage | "queued", string> = {
   queued: "Waiting to start",
@@ -40,13 +40,15 @@ export function ProcessingStatus({ lecture: l, onChange }: { lecture: Lecture; o
     );
   }
 
-  const label = STAGE_LABELS[l.status as Stage | "queued"];
+  // While a link import downloads, ingest reports a percentage out of 100.
+  const downloading = l.status === "ingest" && !!l.sourceUrl && l.stageTotal === 100;
+  const label = downloading ? `Downloading from ${sourceName(l.sourceUrl)} ${l.stageDone}%` : STAGE_LABELS[l.status as Stage | "queued"];
   const fraction = l.stageTotal > 0 ? l.stageDone / l.stageTotal : null;
   return (
     <div>
       <p className="text-xs text-muted">
         {label}
-        {l.status === "describe" && l.stageTotal > 0 ? ` ${l.stageDone}/${l.stageTotal}` : "…"}
+        {downloading ? "" : l.status === "describe" && l.stageTotal > 0 ? ` ${l.stageDone}/${l.stageTotal}` : "…"}
       </p>
       <Bar fraction={fraction} />
     </div>

@@ -14,6 +14,8 @@ const Env = z.object({
   DAILY_SPEND_CAP_USD: z.coerce.number().positive().default(5),
   // Largest accepted recording. Keep it low on small volumes: ingest briefly holds the upload and its copy.
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(2048),
+  // Downloader for YouTube links.
+  YTDLP_BIN: z.string().default("yt-dlp"),
   // Model that reads frames. Sonnet by default: on a filmed board, Haiku stated wrong numbers
   // (dropped minus signs, guessed values hidden behind the lecturer); Sonnet marks them unreadable.
   FRAMES_MODEL: z.enum(["claude-haiku-5-5", "claude-sonnet-5-5"]).default("claude-sonnet-5-5"),

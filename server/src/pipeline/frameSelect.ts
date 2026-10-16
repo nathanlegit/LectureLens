@@ -77,6 +77,11 @@ export function selectFrames(samples: Uint8Array[], options: Partial<SelectOptio
     tGrad *= 1.1;
     kept = selectOnce(samples, bg, { ...opts, tCut, tGrad });
   }
+  if (kept.length === 0) {
+    // A clip that never holds still and is shorter than the floor interval would otherwise get no
+    // frame at all, leaving nothing to describe or chapter: keep its middle.
+    return [{ index: Math.floor(samples.length / 2), kind: "floor" }];
+  }
   return kept.length > opts.cap ? thinEvenly(kept, opts.cap) : kept;
 }
 
