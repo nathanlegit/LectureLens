@@ -33,9 +33,9 @@ I wanted something that actually looks at the board, shows you where in the lect
 
 ![Library](docs/screenshots/library.jpg)
 
-**Summary** (in dark mode). The overview and chapters, with the equations from the board.
+**Summary.** The overview and chapters, with the equations from the board.
 
-![Summary tab in dark mode](docs/screenshots/summary-dark.jpg)
+![Summary tab](docs/screenshots/summary.jpg)
 
 **Quiz.** Get one wrong and it tells you what you probably mixed up, plus where to rewatch.
 
