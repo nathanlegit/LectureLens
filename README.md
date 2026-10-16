@@ -2,7 +2,7 @@
 
 Lecture Lens reads the board, not just the transcript.
 
-You upload a lecture recording and it transcribes it, reads what's written on the slides and whiteboard, splits it into chapters, and lets you ask questions about it. Every answer cites the exact moment in the video, and clicking the citation jumps the player there.
+You upload a lecture recording and it transcribes it, reads what is written on the slides and whiteboard, splits it into chapters, and lets you ask questions about it. Every answer cites the exact moment in the video, and clicking the citation jumps the player there. Hopefully, this will help your learning when rewatching lectures, or cramming a few days before the final examination
 
 Live demo: https://lecture-lens-production.up.railway.app
 
@@ -10,9 +10,9 @@ Live demo: https://lecture-lens-production.up.railway.app
 
 ## Why I made this
 
-Most of my STEM lectures happen on the board. The equation, the diagram, the bit of code the lecturer is pointing at. Tools like NotebookLM or Panopto's AI summaries only use the transcript, so when the lecturer says "and this term goes to zero" you have no idea which term. They also just hand you the answer, which doesn't help much when you're revising.
+Most of my STEM lectures happen on the board (equations, graphs, code). Tools like NotebookLM or Panopto's AI summaries only use the transcript, so when the lecturer says "and this term goes to zero" you have no idea which term he is referring to. They also just hand you the answer, which doesn't help much when you're revising.
 
-So I wanted something that actually looks at the board, shows you where in the lecture the answer came from, and can teach you instead of just telling you.
+I wanted something that actually looks at the board, shows you where in the lecture the answer came from, and can teach you instead of just telling you.
 
 ## What it does
 
@@ -37,13 +37,13 @@ Each lecture goes through a pipeline, one stage at a time:
 4. **describe**: Claude reads each kept frame and writes down what's on it
 5. **chapter**: Claude splits the lecture into chapters and writes the summaries
 
-The transcript and the frame descriptions get merged into one timeline, and that's what Ask and Quiz work from. Every stage saves its output, so if the server restarts mid-lecture it just carries on from the stage it was in.
+The transcript and the frame descriptions get merged into one timeline, which is what Ask and Quiz work from. Every stage saves its output, so if the server restarts mid-lecture it just carries on from the stage it was in.
 
 **Stack:** React 19, Vite, Tailwind, TanStack Query on the front end. Hono on Node 24 with SQLite on the back end. Claude Sonnet 5.5 and Haiku 5.5 for the AI parts. Deployed on Railway with Docker.
 
 ## Running it locally
 
-You'll need Node 24, ffmpeg and an Anthropic API key. For transcription either get a free Groq API key (easiest) or install whisper.cpp.
+You will need Node 24, ffmpeg and an Anthropic API key. For transcription either get a free Groq API key (easiest) or install whisper.cpp.
 
 ```bash
 npm install
@@ -83,7 +83,7 @@ npm run seed -- push <seed.tar> <url>      # upload it to a deployed server
 
 ## Deploying
 
-There's a Dockerfile and a `railway.json`. On Railway, add a volume mounted at `/data`, set `DATA_DIR=/data`, `TRANSCRIBER=groq`, your API keys and an `UPLOAD_PASSCODE`. `DAILY_SPEND_CAP_USD` stops Ask and Quiz once the day's API spend reaches the cap, so a public demo can't run up a huge bill.
+There is a Dockerfile and a `railway.json`. On Railway, add a volume mounted at `/data`, set `DATA_DIR=/data`, `TRANSCRIBER=groq`, your API keys and an `UPLOAD_PASSCODE`. `DAILY_SPEND_CAP_USD` stops Ask and Quiz once the day's API spend reaches the cap.
 
 YouTube links are turned off on the deployed server (`LINK_IMPORT=false`) because YouTube blocks downloads from cloud servers. Use the `pipeline` script locally for those, then `seed push` them up.
 
