@@ -56,6 +56,9 @@ const MIGRATIONS: ((db: DB) => void)[] = [
     `),
   // 5: lectures imported from a YouTube link rather than uploaded.
   (db) => db.exec("ALTER TABLE lectures ADD COLUMN sourceUrl TEXT;"),
+  // 6: starter notes, shown in a notes editor until the visitor saves their own. Keyed like the
+  // browser's notes ("module:<id>", "lecture:<id>").
+  (db) => db.exec("CREATE TABLE starter_notes (key TEXT PRIMARY KEY, text TEXT NOT NULL);"),
 ];
 
 export function migrate(db: DB) {

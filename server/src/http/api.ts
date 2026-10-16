@@ -24,6 +24,11 @@ export function apiRoutes(db: DB) {
   // One generation per lecture and topic at a time: a double click must not pay twice.
   const quizInFlight = new Map<string, Promise<Quiz | QuizNotCovered>>();
 
+  api.get("/starter-notes", (c) => {
+    const rows = db.prepare("SELECT key, text FROM starter_notes").all() as { key: string; text: string }[];
+    return c.json(Object.fromEntries(rows.map((r) => [r.key, r.text])));
+  });
+
   api.get("/modules", (c) => {
     const modules = db.prepare("SELECT id, name, glossary, createdAt FROM modules ORDER BY createdAt").all() as Module[];
     const lectures = (db.prepare(`SELECT ${LECTURE_COLS} FROM lectures ORDER BY week IS NULL, week, createdAt`).all() as LectureRowDb[]).map(toLecture);

@@ -29,6 +29,7 @@ const NewModule = z.object({ name: z.string().trim().min(1).max(120) });
 const Week = z.coerce.number().int().min(1).max(60);
 const LectureEdit = z.object({ title: z.string().trim().min(1).max(200).optional(), week: Week.nullable().optional() });
 const WeekEdit = z.object({ title: z.string().trim().max(80).nullable().optional() });
+const StarterNotes = z.object({ key: z.string().regex(/^(module|lecture):[\w-]{1,40}$/), text: z.string().max(50_000) });
 const FromLink = z.object({ url: z.string().trim().min(1).max(2000), title: z.string().trim().max(200).optional(), week: Week.nullable().optional() });
 
 /** Writes: create modules, upload recordings, retry failed lectures. All behind the passcode. */
@@ -112,6 +113,16 @@ export function uploadRoutes(db: DB, dataDir: string) {
       return c.json({ error: "The uploaded file is gone; upload the recording again" }, 409);
     }
     db.prepare("UPDATE lectures SET status = failedStage, failedStage = NULL, error = NULL WHERE id = ?").run(id);
+    return c.json({ ok: true });
+  });
+
+  // Set the starter notes for a module or lecture; empty text removes them.
+  app.post("/starter-notes", async (c) => {
+    const parsed = StarterNotes.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Invalid notes key or text" }, 400);
+    const { key, text } = parsed.data;
+    if (text.trim()) db.prepare("INSERT INTO starter_notes (key, text) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET text = excluded.text").run(key, text);
+    else db.prepare("DELETE FROM starter_notes WHERE key = ?").run(key);
     return c.json({ ok: true });
   });
 
