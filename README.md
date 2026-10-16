@@ -10,7 +10,7 @@ Live demo: https://lecture-lens-production.up.railway.app
 
 ## Why I made this
 
-Most of my STEM lectures happen on the board (equations, graphs, code). Tools like NotebookLM or Panopto's AI summaries only use the transcript, so when the lecturer says "and this term goes to zero" you have no idea which term he is referring to. They also just hand you the answer, which doesn't help much when you're revising.
+Most of my STEM lectures happen on the board: the equation, the diagram, the bit of code the lecturer is pointing at. Rewatching a recording or reading its transcript only gives you the words, so when the lecturer says “and this term goes to zero”, you have no idea which term. And when you’re revising, being handed the answer doesn’t help much. You need to work out whether you actually understood it.
 
 I wanted something that actually looks at the board, shows you where in the lecture the answer came from, and can teach you instead of just telling you.
 
