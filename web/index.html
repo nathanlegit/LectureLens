@@ -8,8 +8,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231f1f1e' rx='7'/%3E%3Ccircle cx='14' cy='14' r='7' fill='none' stroke='white' stroke-width='3'/%3E%3Cpath d='M19 19l6 6' stroke='white' stroke-width='3.5' stroke-linecap='square'/%3E%3C/svg%3E" />
+    <!-- Favicon: "Photography icons created by Magnific - Flaticon" (https://www.flaticon.com/free-icons/photography); credited in the footer and Settings. -->
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-light.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-light.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-dark.png" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Lecture Lens</title>
+    <!-- Apply a theme chosen in Settings before the first paint, so there's no flash of the wrong one. -->
+    <script>
+      try {
+        var t = localStorage.getItem("lecture-lens-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

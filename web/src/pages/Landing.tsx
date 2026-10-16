@@ -231,7 +231,11 @@ function Footer() {
           <a href="https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/" className="underline decoration-line-strong underline-offset-2 hover:text-muted">
             MIT OpenCourseWare
           </a>{" "}
-          (CC BY-NC-SA).
+          (CC BY-NC-SA).{" "}
+          <a href="https://www.flaticon.com/free-icons/photography" title="photography icons" className="underline decoration-line-strong underline-offset-2 hover:text-muted">
+            Photography icons created by Magnific - Flaticon
+          </a>
+          .
         </span>
       </div>
     </footer>

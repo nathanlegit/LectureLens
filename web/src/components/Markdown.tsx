@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { formatTime } from "../lib/api";
 import { playerBus } from "../lib/playerBus";
@@ -13,6 +14,25 @@ export const Streaming = createContext(false);
 
 // Answers store citations as [F07]; turn them into links the renderer below shows as chips.
 const withCitationLinks = (md: string) => md.replace(/\[(F\d{1,3})\]/g, "[$1](#cite-$1)");
+
+// Notes stamp the video time as [12:41] or [1:02:41]; turn those into links shown as time chips.
+const withTimeLinks = (md: string) =>
+  md.replace(/\[(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\](?!\()/g, (all, h, m, s) =>
+    Number(s) < 60 ? `[${all.slice(1, -1)}](#t-${(Number(h ?? 0) * 60 + Number(m)) * 60 + Number(s)})` : all,
+  );
+
+function TimeChip({ sec }: { sec: number }) {
+  return (
+    <button
+      type="button"
+      onClick={() => playerBus.seek(sec)}
+      title={`Jump to ${formatTime(sec)}`}
+      className="mx-0.5 inline-flex translate-y-[-1px] items-center rounded-[4px] bg-accent-soft px-1.5 py-px align-baseline font-mono text-[0.78em] font-medium text-accent tabular-nums no-underline transition-colors hover:bg-accent hover:text-on-accent"
+    >
+      {formatTime(sec)}
+    </button>
+  );
+}
 
 export function CitationChip({ id }: { id: string }) {
   const sec = useContext(BlockTimes).get(id);
@@ -30,18 +50,31 @@ export function CitationChip({ id }: { id: string }) {
   );
 }
 
-export function Markdown({ children, className = "", inline = false }: { children: string; className?: string; inline?: boolean }) {
+export function Markdown({
+  children,
+  className = "",
+  inline = false,
+  timestamps = false,
+}: {
+  children: string;
+  className?: string;
+  inline?: boolean;
+  /** Render [m:ss] stamps as chips that seek the video. */
+  timestamps?: boolean;
+}) {
   const Wrapper = inline ? "span" : "div";
   return (
     <Wrapper className={inline ? className : `prose prose-stone prose-sm max-w-none prose-p:my-2 prose-pre:my-2 ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
           ...(inline ? { p: ({ children: c }) => <span>{c}</span> } : {}),
           a: ({ href, children: label }) =>
             href?.startsWith("#cite-") ? (
               <CitationChip id={href.slice(6)} />
+            ) : href?.startsWith("#t-") ? (
+              <TimeChip sec={Number(href.slice(3))} />
             ) : (
               <a href={href} target="_blank" rel="noopener noreferrer">
                 {label}
@@ -49,7 +82,7 @@ export function Markdown({ children, className = "", inline = false }: { childre
             ),
         }}
       >
-        {withCitationLinks(children)}
+        {withCitationLinks(timestamps ? withTimeLinks(children) : children)}
       </ReactMarkdown>
     </Wrapper>
   );

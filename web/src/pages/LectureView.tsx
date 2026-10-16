@@ -82,7 +82,7 @@ export function LectureView({ id }: { id: string }) {
                 {lecture.durationSec ? `${formatTime(lecture.durationSec)} · ` : ""}
                 {chapters.length} chapters
               </p>
-              <Player lectureId={lecture.id} posterFrameId={data.frames[0]?.id} />
+              <Player lectureId={lecture.id} posterFrameId={data.frames[0]?.id} chapters={chapters} frames={data.frames} />
               <NowPlaying chapters={chapters} />
               <Transcript lectureId={lecture.id} className="mt-4 h-[42dvh] shrink-0 xl:h-auto xl:min-h-[240px] xl:flex-1" />
             </section>

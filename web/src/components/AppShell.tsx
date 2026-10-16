@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { Lecture, ModuleWithLectures } from "@lecture-lens/shared";
 import { displayTitle, groupWeeks, isProcessing, useModules } from "../lib/modules";
+import { useTheme, type Theme } from "../lib/theme";
 import { Icon, Logo } from "./Brand";
 
 const OPEN_KEY = "lecture-lens-sidebar-open";
@@ -74,7 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 /** Expands to its content's height with a transition; closed content is inert (not focusable). */
 function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
   return (
-    <div className={`collapse ${open ? "is-open" : ""}`} inert={!open}>
+    <div className={`expander ${open ? "is-open" : ""}`} inert={!open}>
       <div>{children}</div>
     </div>
   );
@@ -116,7 +117,78 @@ function Sidebar() {
         </span>
         New module
       </Link>
+      {/* Pinned to the bottom of the sidebar. */}
+      <div className="mt-auto pt-4">
+        <Settings />
+      </div>
     </nav>
+  );
+}
+
+const THEMES: { id: Theme; label: string }[] = [
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+  { id: "system", label: "System" },
+];
+
+/** Settings at the bottom of the sidebar: currently the light / dark / system theme. */
+function Settings() {
+  const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useTheme();
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
+  return (
+    <div ref={root} className="relative">
+      {open && (
+        <div role="dialog" aria-label="Settings" className="card anim-pop absolute bottom-full left-0 z-30 mb-1.5 w-56 origin-bottom-left p-3 shadow-float">
+          <p className="text-xs font-medium text-muted">Appearance</p>
+          <div role="radiogroup" aria-label="Theme" className="mt-2 flex rounded-md bg-press p-0.5 text-xs">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={theme === t.id}
+                onClick={() => setTheme(t.id)}
+                className={`flex-1 rounded px-2 py-1 font-medium transition-colors ${theme === t.id ? "bg-surface text-ink shadow-soft" : "text-muted hover:text-ink"}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-faint">System follows your computer’s setting. Saved in this browser.</p>
+          <p className="mt-3 border-t border-line pt-2.5 text-[11px] leading-snug text-faint">
+            Credits:{" "}
+            <a href="https://www.flaticon.com/free-icons/photography" title="photography icons" target="_blank" rel="noopener noreferrer" className="underline decoration-line-strong underline-offset-2 hover:text-muted">
+              Photography icons created by Magnific - Flaticon
+            </a>
+            . Lecture videos: MIT OpenCourseWare and Harvard CS50, CC BY-NC-SA.
+          </p>
+        </div>
+      )}
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" className={`${ROW} ${open ? ACTIVE : IDLE} w-full`}>
+        <span className="flex w-4 justify-center">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="h-4 w-4" aria-hidden>
+            <circle cx="8" cy="8" r="2.2" />
+            <path d="M8 1.5v1.7M8 12.8v1.7M1.5 8h1.7M12.8 8h1.7M3.4 3.4l1.2 1.2M11.4 11.4l1.2 1.2M3.4 12.6l1.2-1.2M11.4 4.6l1.2-1.2" strokeLinecap="round" />
+          </svg>
+        </span>
+        Settings
+      </button>
+    </div>
   );
 }
 

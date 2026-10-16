@@ -44,8 +44,9 @@
   color-scheme: light;
 }
 
+/* Dark: follows the system unless the reader picked a theme in Settings (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ll-bg: #191919;
     --ll-sidebar: #202020;
     --ll-sand: #2a2a2a;
@@ -74,6 +75,36 @@
     --ll-shadow-lg: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.3), 0 24px 64px rgb(0 0 0 / 0.35);
     color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --ll-bg: #191919;
+  --ll-sidebar: #202020;
+  --ll-sand: #2a2a2a;
+  --ll-surface: #212121;
+  --ll-hover: rgb(255 255 255 / 0.055);
+  --ll-press: rgb(255 255 255 / 0.09);
+  --ll-line: rgb(255 255 255 / 0.09);
+  --ll-line-strong: rgb(255 255 255 / 0.16);
+  --ll-ink: rgb(255 255 255 / 0.88);
+  --ll-muted: rgb(255 255 255 / 0.55);
+  --ll-faint: rgb(255 255 255 / 0.35);
+  --ll-primary: #ededec;
+  --ll-on-primary: #191919;
+  --ll-accent: #529cca;
+  --ll-accent-soft: rgb(82 156 202 / 0.16);
+  --ll-accent-wash: rgb(82 156 202 / 0.08);
+  --ll-on-accent: #ffffff;
+  --ll-ok: #4dab9a;
+  --ll-ok-soft: rgb(77 171 154 / 0.14);
+  --ll-bad: #ff7369;
+  --ll-bad-soft: rgb(255 115 105 / 0.12);
+  --ll-warn: #ffa344;
+  --ll-warn-soft: rgb(255 163 68 / 0.14);
+  --ll-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.2);
+  --ll-shadow-md: 0 1px 2px rgb(0 0 0 / 0.2), 0 4px 16px rgb(0 0 0 / 0.25);
+  --ll-shadow-lg: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.3), 0 24px 64px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -266,6 +297,15 @@ body {
   scrollbar-color: var(--ll-line-strong) transparent;
 }
 
+/* Captions in the app's typeface on a softer backing. */
+video::cue {
+  font-family: var(--font-sans);
+  font-size: 0.95em;
+  line-height: 1.35;
+  color: #fff;
+  background: rgb(0 0 0 / 0.62);
+}
+
 /* ---------- Motion ---------- */
 
 @keyframes ll-fade-in {
@@ -373,14 +413,15 @@ body {
 img.fade-img { opacity: 0; transition: opacity var(--ll-dur-slow) var(--ll-ease-out); }
 img.fade-img.is-loaded { opacity: 1; }
 
-/* Expand/collapse to the content's own height: the grid row animates from 0fr to 1fr. */
-.collapse {
+/* Expand/collapse to the content's own height: the grid row animates from 0fr to 1fr.
+   (Not named .collapse: that is Tailwind's visibility: collapse utility.) */
+.expander {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows var(--ll-dur) var(--ll-ease-out);
 }
-.collapse.is-open { grid-template-rows: 1fr; }
-.collapse > * { min-height: 0; overflow: hidden; }
+.expander.is-open { grid-template-rows: 1fr; }
+.expander > * { min-height: 0; overflow: hidden; }
 
 /* Scroll-revealed sections on the landing page. */
 .reveal { opacity: 0; transform: translateY(10px); transition: opacity 500ms var(--ll-ease-out), transform 500ms var(--ll-ease-out); }
@@ -403,3 +444,8 @@ html { scroll-behavior: smooth; }
   .reveal { opacity: 1; transform: none; }
   img.fade-img { opacity: 1; }
 }
+
+/* GFM task lists ("- [ ] item"): a checkbox in place of the bullet. */
+.prose li.task-list-item { list-style: none; }
+.prose li.task-list-item::marker { content: none; }
+.prose li.task-list-item input[type="checkbox"] { margin: 0 0.45em 0 0; vertical-align: -0.1em; accent-color: var(--ll-accent); }
