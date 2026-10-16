@@ -120,7 +120,7 @@ export function MoreMenu({ label, items }: { label: string; items: { label: stri
         <span aria-hidden className="text-base leading-none tracking-widest">⋯</span>
       </button>
       {open && (
-        <div role="menu" className="card absolute right-0 z-30 mt-1 min-w-44 p-1 shadow-float">
+        <div role="menu" className="card anim-pop origin-tr absolute right-0 z-30 mt-1 min-w-44 p-1 shadow-float">
           {items.map((item) => (
             <button
               key={item.label}

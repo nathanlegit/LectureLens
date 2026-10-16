@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { LectureDetail } from "@lecture-lens/shared";
@@ -9,11 +9,12 @@ import { BlockTimes } from "../components/Markdown";
 import { NotesEditor } from "../components/NotesEditor";
 import { Player } from "../components/Player";
 import { QuizTab } from "../components/QuizTab";
+import { LectureSkeleton } from "../components/Skeleton";
 import { SummaryTab } from "../components/SummaryTab";
 import { Transcript } from "../components/Transcript";
 import { formatTime, getJSON, postWrite } from "../lib/api";
 import { displayTitle, useModules, weekLabel } from "../lib/modules";
-import { usePlayerTime } from "../lib/playerBus";
+import { usePlayerSecond } from "../lib/playerBus";
 
 type Tab = "summary" | "ask" | "quiz" | "notes";
 const TABS: { id: Tab; label: string }[] = [
@@ -37,7 +38,7 @@ export function LectureView({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>("summary");
   const blockTimes = useMemo(() => new Map(data?.frames.map((f, i) => [f.id, i === 0 ? 0 : f.atSec])), [data]);
 
-  if (isPending) return <p className="p-12 text-sm text-muted">Loading…</p>;
+  if (isPending) return <LectureSkeleton />;
   if (error) return <p className="p-12 text-sm text-bad">{error.message}</p>;
   const { lecture, chapters } = data;
   const module = modules?.find((m) => m.id === lecture.moduleId);
@@ -48,7 +49,7 @@ export function LectureView({ id }: { id: string }) {
 
   return (
     <BlockTimes.Provider value={blockTimes}>
-      <div className="flex min-h-0 flex-1 flex-col xl:h-dvh">
+      <div className="flex min-h-0 flex-1 flex-col xl:h-dvh xl:flex-none">
         <nav aria-label="Breadcrumb" className="flex h-11 shrink-0 items-center gap-0.5 overflow-hidden px-3 text-sm whitespace-nowrap text-muted md:px-4">
           {module && (
             <Link href={`/modules/${module.id}`} className="truncate rounded-md px-1.5 py-0.5 transition-colors hover:bg-hover hover:text-ink">
@@ -86,33 +87,19 @@ export function LectureView({ id }: { id: string }) {
               <Transcript lectureId={lecture.id} className="mt-4 h-[42dvh] shrink-0 xl:h-auto xl:min-h-[240px] xl:flex-1" />
             </section>
 
-            <section className="card flex min-h-[70dvh] flex-col overflow-hidden xl:min-h-0">
-              <div role="tablist" className="flex gap-1 border-b border-line px-3">
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    role="tab"
-                    aria-selected={tab === t.id}
-                    onClick={() => setTab(t.id)}
-                    className={`-mb-px border-b-2 px-2 py-2.5 text-sm ${
-                      tab === t.id ? "border-primary font-medium text-ink" : "border-transparent text-muted hover:text-ink"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+            <section className="card flex h-[80dvh] flex-col overflow-hidden xl:h-auto xl:min-h-0">
+              <Tabs tab={tab} onChange={setTab} />
               {/* Tabs stay mounted so a streaming answer, a half-done quiz or a note survives switching tabs. */}
-              <div className={`scroll-quiet min-h-0 flex-1 overflow-y-auto ${tab === "summary" ? "" : "hidden"}`}>
+              <div className={`scroll-quiet min-h-0 flex-1 overflow-y-auto ${tab === "summary" ? "anim-fade" : "hidden"}`}>
                 <SummaryTab overview={lecture.summary} chapters={chapters} />
               </div>
-              <div className={`min-h-0 flex-1 ${tab === "ask" ? "" : "hidden"}`}>
+              <div className={`min-h-0 flex-1 ${tab === "ask" ? "anim-fade" : "hidden"}`}>
                 <AskTab lectureId={lecture.id} chapters={chapters} />
               </div>
-              <div className={`scroll-quiet min-h-0 flex-1 overflow-y-auto ${tab === "quiz" ? "" : "hidden"}`}>
+              <div className={`scroll-quiet min-h-0 flex-1 overflow-y-auto ${tab === "quiz" ? "anim-fade" : "hidden"}`}>
                 <QuizTab lectureId={lecture.id} chapters={chapters} />
               </div>
-              <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${tab === "notes" ? "" : "hidden"}`}>
+              <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${tab === "notes" ? "anim-fade" : "hidden"}`}>
                 <NotesEditor storageKey={`lecture:${lecture.id}`} withTimestamps placeholder="Your notes on this lecture. Stamp the video time to come back to a moment." />
               </div>
             </section>
@@ -123,12 +110,53 @@ export function LectureView({ id }: { id: string }) {
   );
 }
 
+/** The tab bar, with one underline that slides to the selected tab. */
+function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+  const bar = useRef<HTMLDivElement>(null);
+  const [line, setLine] = useState<{ x: number; w: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = bar.current?.querySelector<HTMLElement>(`[data-tab="${tab}"]`);
+      if (el) setLine({ x: el.offsetLeft, w: el.offsetWidth });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (bar.current) ro.observe(bar.current);
+    return () => ro.disconnect();
+  }, [tab]);
+
+  return (
+    <div ref={bar} role="tablist" className="relative flex gap-1 border-b border-line px-3">
+      {TABS.map((t) => (
+        <button
+          key={t.id}
+          data-tab={t.id}
+          role="tab"
+          aria-selected={tab === t.id}
+          onClick={() => onChange(t.id)}
+          className={`px-2 py-2.5 text-sm transition-colors duration-150 ${tab === t.id ? "font-medium text-ink" : "text-muted hover:text-ink"}`}
+        >
+          {t.label}
+        </button>
+      ))}
+      {line && (
+        <span
+          aria-hidden
+          className="absolute bottom-[-1px] left-0 h-0.5 rounded-full bg-primary transition-[transform,width] duration-[var(--ll-dur-slow)] ease-[var(--ll-ease-out)]"
+          style={{ width: line.w, transform: `translateX(${line.x}px)` }}
+        />
+      )}
+    </div>
+  );
+}
+
 function NowPlaying({ chapters }: { chapters: LectureDetail["chapters"] }) {
-  const time = usePlayerTime();
+  const time = usePlayerSecond();
   const current = chapters.find((c) => time >= c.startSec && time < c.endSec);
   if (!current) return null;
   return (
-    <p className="mt-3 flex items-center gap-2 text-sm text-muted">
+    <p key={current.id} className="anim-fade mt-3 flex items-center gap-2 text-sm text-muted">
       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
       <span className="font-mono text-xs tabular-nums">{formatTime(time)}</span>
       <span className="text-faint">·</span>

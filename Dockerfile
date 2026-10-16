@@ -28,7 +28,8 @@ RUN npm run build
 # The deployed server never runs whisper.cpp: transcription goes to the hosted API.
 ENV NODE_ENV=production \
     DATA_DIR=/data \
-    TRANSCRIBER=groq
+    TRANSCRIBER=groq \
+    LINK_IMPORT=false
 
 # Node directly, not through npm: npm reports a normal SIGTERM on redeploy as "command failed".
 CMD ["node", "--import", "tsx", "server/src/index.ts"]

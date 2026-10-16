@@ -8,18 +8,22 @@ import { playerBus } from "../lib/playerBus";
 /** Block ID → start time, for the lecture on screen. Citation chips read it to show and seek. */
 export const BlockTimes = createContext<Map<string, number>>(new Map());
 
+/** True inside an answer that is still streaming: new citation chips pop in as they arrive. */
+export const Streaming = createContext(false);
+
 // Answers store citations as [F07]; turn them into links the renderer below shows as chips.
 const withCitationLinks = (md: string) => md.replace(/\[(F\d{1,3})\]/g, "[$1](#cite-$1)");
 
 export function CitationChip({ id }: { id: string }) {
   const sec = useContext(BlockTimes).get(id);
+  const streaming = useContext(Streaming);
   if (sec === undefined) return null;
   return (
     <button
       type="button"
       onClick={() => playerBus.seek(sec)}
       title={`Jump to ${formatTime(sec)} (${id})`}
-      className="mx-0.5 inline-flex translate-y-[-1px] items-center rounded-[4px] bg-accent-soft px-1.5 py-px align-baseline font-mono text-[0.78em] font-medium text-accent tabular-nums no-underline transition-colors hover:bg-accent hover:text-on-accent"
+      className={`${streaming ? "anim-pop" : ""} mx-0.5 inline-flex translate-y-[-1px] items-center rounded-[4px] bg-accent-soft px-1.5 py-px align-baseline font-mono text-[0.78em] font-medium text-accent tabular-nums no-underline transition-colors hover:bg-accent hover:text-on-accent`}
     >
       {formatTime(sec)}
     </button>

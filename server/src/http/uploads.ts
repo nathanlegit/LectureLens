@@ -80,6 +80,7 @@ export function uploadRoutes(db: DB, dataDir: string) {
   app.post("/modules/:moduleId/lectures/from-link", async (c) => {
     const moduleId = c.req.param("moduleId");
     if (!db.prepare("SELECT 1 FROM modules WHERE id = ?").get(moduleId)) return c.json({ error: "Module not found" }, 404);
+    if (!config.LINK_IMPORT) return c.json({ error: "YouTube import is off on this server. Download the video and upload the file instead." }, 403);
     const parsed = FromLink.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Paste a YouTube link" }, 400);
     if (!parseSourceUrl(parsed.data.url)) {

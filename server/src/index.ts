@@ -17,6 +17,7 @@ const app = new Hono();
 app.use("/api/*", logger());
 
 app.get("/api/health", (c) => c.json({ ok: true }));
+app.get("/api/features", (c) => c.json({ linkImport: config.LINK_IMPORT }));
 app.route("/api/admin", adminRoutes(db, config.DATA_DIR));
 app.route("/api/write", uploadRoutes(db, config.DATA_DIR));
 app.route("/api", apiRoutes(db));

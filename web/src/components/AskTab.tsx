@@ -1,10 +1,11 @@
+import type React from "react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AskMode, Chapter, ChatMessage } from "@lecture-lens/shared";
+import type { AskEvent, AskMode, Chapter, ChatMessage } from "@lecture-lens/shared";
 import { askStream, getJSON } from "../lib/api";
 import { Icon } from "./Brand";
 import { FrameStrip } from "./FrameStrip";
-import { Markdown } from "./Markdown";
+import { Markdown, Streaming } from "./Markdown";
 
 interface Pending {
   question: string;
@@ -21,6 +22,17 @@ const MODES: { id: AskMode; label: string; hint: string }[] = [
 const NEXT_HINT = "Give me the next hint.";
 const REVEAL = "Just tell me the answer.";
 const MODE_KEY = "lecture-lens-ask-mode";
+
+/** Applies one streamed event to the answer being written. */
+function apply(p: Pending | null, e: AskEvent): Pending | null {
+  if (!p) return p;
+  if (e.type === "text") return { ...p, answer: p.answer + e.text };
+  if (e.type === "cite") return { ...p, answer: `${p.answer}[${e.citation.id}]`, cited: [...p.cited, e.citation.id] };
+  if (e.type === "error") return { ...p, error: e.message };
+  return p;
+}
+
+const NEAR_BOTTOM_PX = 80;
 
 function savedMode(): AskMode {
   try {
@@ -40,7 +52,13 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
   const [pending, setPending] = useState<Pending | null>(null);
   const [input, setInput] = useState("");
   const [mode, setModeState] = useState<AskMode>(savedMode);
-  const bottom = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  // Follow the answer only while the reader is at the bottom; scrolling up to reread stays put.
+  const atBottom = useRef(true);
+  const [newBelow, setNewBelow] = useState(false);
+  // Streamed events are applied at most once per frame, not once per chunk.
+  const queue = useRef<AskEvent[]>([]);
+  const frame = useRef(0);
   const streaming = pending !== null && pending.error === null;
 
   const setMode = (m: AskMode) => {
@@ -52,27 +70,61 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
     }
   };
 
-  // Braces matter: scrollIntoView returns a Promise in current browsers, and an effect must not return one.
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, pending?.answer]);
+    const box = scroller.current;
+    if (!box) return;
+    if (atBottom.current) box.scrollTop = box.scrollHeight;
+    else if (pending) setNewBelow(true);
+  }, [messages.length, pending?.answer, pending]);
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  const nearBottom = () => {
+    const box = scroller.current;
+    return !box || box.scrollHeight - box.scrollTop - box.clientHeight < NEAR_BOTTOM_PX;
+  };
+  // Any scroll that lands near the bottom resumes following...
+  const onScroll = () => {
+    if (nearBottom()) {
+      atBottom.current = true;
+      setNewBelow(false);
+    }
+  };
+  // ...but only the reader scrolling up (wheel, touch drag, keys) stops it. Programmatic and smooth
+  // scrolls fire scroll events too, and must not be mistaken for the reader leaving.
+  const leave = () => (atBottom.current = false);
+  const onWheel = (e: React.WheelEvent) => e.deltaY < 0 && leave();
+  const onKeyDown = (e: React.KeyboardEvent) => ["PageUp", "ArrowUp", "Home"].includes(e.key) && leave();
+
+  const toBottom = () => {
+    atBottom.current = true;
+    setNewBelow(false);
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
+  };
+
+  const flush = () => {
+    frame.current = 0;
+    const events = queue.current;
+    queue.current = [];
+    if (events.length) setPending((p) => events.reduce(apply, p));
+  };
 
   async function submit(question: string, askMode: AskMode = mode) {
     question = question.trim();
     if (!question || streaming) return;
     setInput("");
+    atBottom.current = true;
+    setNewBelow(false);
     setPending({ question, mode: askMode, answer: "", cited: [], error: null });
     await askStream(lectureId, question, askMode, (e) => {
-      setPending((p) => {
-        if (!p) return p;
-        if (e.type === "text") return { ...p, answer: p.answer + e.text };
-        if (e.type === "cite") return { ...p, answer: `${p.answer}[${e.citation.id}]`, cited: [...p.cited, e.citation.id] };
-        if (e.type === "error") return { ...p, error: e.message };
-        return p;
-      });
       if (e.type === "done") {
+        cancelAnimationFrame(frame.current);
+        flush();
         void queryClient.invalidateQueries({ queryKey: messagesKey }).then(() => setPending(null));
+        return;
       }
+      queue.current.push(e);
+      if (!frame.current) frame.current = requestAnimationFrame(flush);
     }).catch(() => setPending((p) => p && { ...p, error: "Lost the connection. Try again." }));
   }
 
@@ -93,7 +145,8 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 
   return (
     <div className="flex h-full flex-col">
-      <div className="scroll-quiet flex-1 space-y-6 overflow-y-auto p-4">
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div ref={scroller} onScroll={onScroll} onWheel={onWheel} onTouchMove={leave} onKeyDown={onKeyDown} data-chat-scroll className="scroll-quiet min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
         {messages.length > 0 && !pending && (
           <div className="-mt-1 -mb-3 flex justify-end">
             <button type="button" onClick={() => void newChat()} className="btn btn-ghost btn-sm -mr-2">
@@ -132,19 +185,27 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
 
         {pending && (
           <>
-            <Question text={pending.question} mode={pending.mode} />
+            <div className="anim-rise">
+              <Question text={pending.question} mode={pending.mode} />
+            </div>
             {pending.answer ? (
-              <Answer lectureId={lectureId} text={pending.answer} cited={pending.cited} />
+              <Streaming.Provider value={streaming}>
+                <Answer lectureId={lectureId} text={pending.answer} cited={pending.cited} writing={streaming} />
+              </Streaming.Provider>
             ) : (
               !pending.error && (
-                <p className="flex items-center gap-2 text-sm text-muted">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+                <p className="anim-fade flex items-center gap-2.5 text-sm text-muted">
+                  <span className="dots" aria-hidden>
+                    <span />
+                    <span />
+                    <span />
+                  </span>
                   {pending.mode === "guide" ? "Finding the right hint…" : "Reading the lecture…"}
                 </p>
               )
             )}
             {pending.error && (
-              <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
+              <p role="alert" className="anim-rise rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
                 {pending.error}{" "}
                 <button type="button" className="underline" onClick={() => setPending(null)}>
                   Dismiss
@@ -155,7 +216,7 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
         )}
 
         {offerLadder && (
-          <div className="flex flex-wrap gap-2">
+          <div className="anim-rise flex flex-wrap gap-2" style={{ animationDelay: "120ms" }}>
             <button type="button" onClick={() => void submit(NEXT_HINT, "guide")} className="btn btn-sm">
               Show me more
             </button>
@@ -164,7 +225,12 @@ export function AskTab({ lectureId, chapters }: { lectureId: string; chapters: C
             </button>
           </div>
         )}
-        <div ref={bottom} />
+      </div>
+      {newBelow && (
+        <button type="button" onClick={toBottom} className="btn btn-sm anim-rise absolute bottom-2 left-1/2 -translate-x-1/2 shadow-float">
+          ↓ New text
+        </button>
+      )}
       </div>
 
       <form onSubmit={onSubmit} className="p-3 pt-0">
@@ -223,9 +289,9 @@ function Question({ text, mode }: { text: string; mode: AskMode }) {
   );
 }
 
-function Answer({ lectureId, text, cited }: { lectureId: string; text: string; cited: string[] }) {
+function Answer({ lectureId, text, cited, writing = false }: { lectureId: string; text: string; cited: string[]; writing?: boolean }) {
   return (
-    <div>
+    <div className={writing ? "stream-caret" : ""}>
       <Markdown>{text}</Markdown>
       <FrameStrip lectureId={lectureId} ids={cited} />
     </div>

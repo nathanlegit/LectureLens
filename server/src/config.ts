@@ -16,6 +16,12 @@ const Env = z.object({
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(2048),
   // Downloader for YouTube links.
   YTDLP_BIN: z.string().default("yt-dlp"),
+  // YouTube blocks downloads from cloud servers, so the deployed image turns link import off
+  // (the option is hidden there) and lectures from YouTube are imported on a laptop instead.
+  LINK_IMPORT: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
   // Model that reads frames. Sonnet by default: on a filmed board, Haiku stated wrong numbers
   // (dropped minus signs, guessed values hidden behind the lecturer); Sonnet marks them unreadable.
   FRAMES_MODEL: z.enum(["claude-haiku-5-5", "claude-sonnet-5-5"]).default("claude-sonnet-5-5"),

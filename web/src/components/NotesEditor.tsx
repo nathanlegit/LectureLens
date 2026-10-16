@@ -2,13 +2,13 @@ import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { formatTime } from "../lib/api";
 import { useNotes } from "../lib/notes";
-import { usePlayerTime } from "../lib/playerBus";
+import { usePlayerSecond } from "../lib/playerBus";
 
 /** A borderless, auto-growing notes area. With withTimestamps, it can stamp the video time. */
 export function NotesEditor({ storageKey, placeholder, withTimestamps = false }: { storageKey: string; placeholder: string; withTimestamps?: boolean }) {
   const { text, update, saved } = useNotes(storageKey);
   const area = useRef<HTMLTextAreaElement>(null);
-  const time = usePlayerTime();
+  const time = usePlayerSecond();
 
   useLayoutEffect(() => {
     const el = area.current;
@@ -35,7 +35,9 @@ export function NotesEditor({ storageKey, placeholder, withTimestamps = false }:
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-xs text-faint">{saved ? "Saved in this browser" : "Saving…"}</span>
+        <span key={saved ? "saved" : "saving"} className="anim-fade text-xs text-faint">
+          {saved ? "Saved in this browser" : "Saving…"}
+        </span>
         {withTimestamps && (
           <button type="button" onClick={insertTimestamp} className="btn btn-ghost btn-sm -mr-2 tabular-nums">
             + Timestamp {formatTime(time)}

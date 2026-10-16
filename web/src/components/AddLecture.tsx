@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getJSON } from "../lib/api";
 import { Icon } from "./Brand";
 
 /** Client-side guess at what a pasted link is; the server does the real (strict) check. */
@@ -10,6 +12,11 @@ export function linkKind(url: string): "YouTube video" | null {
 
 /** "Add lecture": upload a file, or import from a YouTube link. */
 export function AddLectureMenu({ disabled, onFile, onLink, compact = false }: { disabled?: boolean; onFile: () => void; onLink: () => void; compact?: boolean }) {
+  const { data: features } = useQuery({
+    queryKey: ["features"],
+    queryFn: () => getJSON<{ linkImport: boolean }>("/api/features"),
+    staleTime: Infinity,
+  });
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -29,6 +36,8 @@ export function AddLectureMenu({ disabled, onFile, onLink, compact = false }: { 
     setOpen(false);
     fn();
   };
+  // No link import on this server (the deployed one): skip the menu and pick a file directly.
+  const toggle = () => (features?.linkImport ? setOpen((o) => !o) : onFile());
 
   return (
     <div ref={root} className="relative">
@@ -36,7 +45,7 @@ export function AddLectureMenu({ disabled, onFile, onLink, compact = false }: { 
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setOpen((o) => !o)}
+          onClick={toggle}
           aria-haspopup="menu"
           aria-expanded={open}
           className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-faint transition-colors hover:bg-hover hover:text-muted disabled:opacity-40"
@@ -44,12 +53,12 @@ export function AddLectureMenu({ disabled, onFile, onLink, compact = false }: { 
           <Icon.plus className="h-4 w-4" /> Add a recording
         </button>
       ) : (
-        <button type="button" disabled={disabled} onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="btn btn-ghost btn-sm">
+        <button type="button" disabled={disabled} onClick={toggle} aria-haspopup="menu" aria-expanded={open} className="btn btn-ghost btn-sm">
           <Icon.upload className="h-3.5 w-3.5" /> Add lecture
         </button>
       )}
       {open && (
-        <div role="menu" className={`card absolute z-30 mt-1 w-72 p-1 shadow-float ${compact ? "left-0" : "right-0"}`}>
+        <div role="menu" className={`card anim-pop absolute z-30 mt-1 w-72 p-1 shadow-float ${compact ? "origin-tl left-0" : "origin-tr right-0"}`}>
           <button type="button" role="menuitem" onClick={pick(onFile)} className="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-hover">
             <Icon.upload className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
             <span>
@@ -99,9 +108,9 @@ export function LinkDialog({ weekName, onClose, onSubmit }: { weekName: string; 
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="link-dialog-title" className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-4 pt-[15vh]">
+    <div role="dialog" aria-modal="true" aria-labelledby="link-dialog-title" className="anim-fade fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-4 pt-[15vh]">
       <button type="button" aria-label="Close" className="absolute inset-0 cursor-default" onClick={() => !busy && onClose()} />
-      <form onSubmit={submit} className="card relative w-full max-w-md p-5 shadow-window">
+      <form onSubmit={submit} className="card anim-pop relative w-full max-w-md p-5 shadow-window" style={{ animationDuration: "var(--ll-dur-slow)" }}>
         <h2 id="link-dialog-title" className="font-semibold tracking-tight">
           Import from YouTube
         </h2>

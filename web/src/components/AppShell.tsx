@@ -62,8 +62,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Logo size={20} />
           </Link>
         </div>
-        {children}
+        {/* Keyed by route so each page eases in on navigation; the sidebar stays put. */}
+        <div key={location} className="anim-rise flex min-w-0 flex-1 flex-col">
+          {children}
+        </div>
       </div>
+    </div>
+  );
+}
+
+/** Expands to its content's height with a transition; closed content is inert (not focusable). */
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div className={`collapse ${open ? "is-open" : ""}`} inert={!open}>
+      <div>{children}</div>
     </div>
   );
 }
@@ -125,7 +137,7 @@ function ModuleBranch({
       <Row active={location === `/modules/${m.id}`} expanded={expanded} onToggle={() => toggle(m.id)} href={`/modules/${m.id}`} icon={<ModuleIcon name={m.name} />}>
         {m.name}
       </Row>
-      {expanded && (
+      <Collapse open={expanded}>
         <div className="ml-3.5">
           {m.lectures.length === 0 && m.weeks.length === 0 && <p className="py-1 pl-7 text-xs text-faint">No lectures yet</p>}
           {groupWeeks(m).map(({ week, label, lectures }) => {
@@ -136,7 +148,7 @@ function ModuleBranch({
                 <Row expanded={weekOpen} onToggle={() => toggle(key)} icon={<Icon.calendar className="h-3.5 w-3.5" />}>
                   {label}
                 </Row>
-                {weekOpen && (
+                <Collapse open={weekOpen}>
                   <div className="ml-3.5">
                     {lectures.length === 0 && <p className="py-1 pl-7 text-xs text-faint">Empty</p>}
                     {lectures.map((l) => (
@@ -145,12 +157,12 @@ function ModuleBranch({
                       </NavItem>
                     ))}
                   </div>
-                )}
+                </Collapse>
               </div>
             );
           })}
         </div>
-      )}
+      </Collapse>
     </div>
   );
 }

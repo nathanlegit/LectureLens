@@ -46,7 +46,7 @@ export function ProcessingStatus({ lecture: l, onChange }: { lecture: Lecture; o
   const fraction = l.stageTotal > 0 ? l.stageDone / l.stageTotal : null;
   return (
     <div>
-      <p className="text-xs text-muted">
+      <p key={l.status} className="anim-fade text-xs text-muted">
         {label}
         {downloading ? "" : l.status === "describe" && l.stageTotal > 0 ? ` ${l.stageDone}/${l.stageTotal}` : "…"}
       </p>

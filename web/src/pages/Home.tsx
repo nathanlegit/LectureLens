@@ -1,9 +1,11 @@
+import type React from "react";
 import { useState, type ReactNode } from "react";
 import { Link, useSearch } from "wouter";
 import type { Lecture, ModuleWithLectures } from "@lecture-lens/shared";
 import { ModuleIcon } from "../components/AppShell";
 import { Icon } from "../components/Brand";
 import { NewModuleForm } from "../components/LectureBits";
+import { FadeImg, LibrarySkeleton } from "../components/Skeleton";
 import { formatTime, frameUrl } from "../lib/api";
 import { displayTitle, useModules, weekLabel } from "../lib/modules";
 
@@ -44,15 +46,15 @@ export function Home() {
         )}
       </p>
 
-      {isPending && <p className="mt-10 text-sm text-muted">Loading…</p>}
+      {isPending && <LibrarySkeleton />}
       {error && <p className="mt-10 text-sm text-bad">{error.message}</p>}
 
       {recent.length > 0 && (
         <section className="mt-12">
           <SectionLabel icon={<Icon.clock className="h-3.5 w-3.5" />}>Recently added</SectionLabel>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recent.map((l) => (
-              <LectureCard key={l.id} lecture={l} moduleName={l.moduleName} weekName={l.weekName} />
+            {recent.map((l, i) => (
+              <LectureCard key={l.id} index={i} lecture={l} moduleName={l.moduleName} weekName={l.weekName} />
             ))}
           </div>
         </section>
@@ -83,8 +85,10 @@ export function Home() {
         )}
         {modules && modules.length > 0 && (
           <div className="overflow-hidden rounded-xl border border-line">
-            {modules.map((m) => (
-              <ModuleRow key={m.id} module={m} />
+            {modules.map((m, i) => (
+              <div key={m.id} className="anim-fade" style={{ "--i": i } as React.CSSProperties}>
+                <ModuleRow module={m} />
+              </div>
             ))}
           </div>
         )}
@@ -102,11 +106,11 @@ function SectionLabel({ icon, children }: { icon: ReactNode; children: ReactNode
   );
 }
 
-function LectureCard({ lecture: l, moduleName, weekName }: { lecture: Lecture; moduleName: string; weekName: string }) {
+function LectureCard({ lecture: l, moduleName, weekName, index }: { lecture: Lecture; moduleName: string; weekName: string; index: number }) {
   return (
-    <Link href={`/lectures/${l.id}`} className="card group overflow-hidden">
+    <Link href={`/lectures/${l.id}`} style={{ "--i": index } as React.CSSProperties} className="card anim-rise group overflow-hidden transition-transform duration-200 hover:-translate-y-0.5">
       <div className="relative aspect-video overflow-hidden bg-sand">
-        {l.thumbFrameId && <img src={frameUrl(l.id, l.thumbFrameId)} alt="" loading="lazy" className="h-full w-full object-cover" />}
+        {l.thumbFrameId && <FadeImg src={frameUrl(l.id, l.thumbFrameId)} alt="" loading="lazy" className="h-full w-full object-cover" />}
         {l.durationSec ? (
           <span className="absolute right-2 bottom-2 rounded bg-black/65 px-1.5 py-0.5 font-mono text-[11px] text-white tabular-nums backdrop-blur-sm">
             {formatTime(l.durationSec)}

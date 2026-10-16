@@ -7,6 +7,7 @@ import { AddLectureMenu, LinkDialog } from "../components/AddLecture";
 import { EditableText, MoreMenu } from "../components/Editable";
 import { Bar, DeleteLectureButton, ProcessingStatus, WeekSelect } from "../components/LectureBits";
 import { NotesEditor } from "../components/NotesEditor";
+import { ModuleSkeleton } from "../components/Skeleton";
 import { formatTime, postWrite, uploadLecture } from "../lib/api";
 import { defaultWeekLabel, displayTitle, groupWeeks, isProcessing, useModules, useRefreshModules, weekLabel } from "../lib/modules";
 
@@ -29,7 +30,7 @@ export function ModulePage({ id }: { id: string }) {
   const [linkWeek, setLinkWeek] = useState<number | null | undefined>(undefined);
 
   const m = modules?.find((x) => x.id === id);
-  if (isPending) return <p className="p-12 text-sm text-muted">Loading…</p>;
+  if (isPending) return <ModuleSkeleton />;
   if (!m) return <p className="p-12 text-sm text-muted">This module doesn’t exist.</p>;
 
   const groups = groupWeeks(m);
@@ -195,11 +196,14 @@ export function ModulePage({ id }: { id: string }) {
 
 function LectureRow({ lecture: l, weeks, onChange }: { lecture: Lecture; weeks: WeekInfo[]; onChange: () => void }) {
   const ready = l.status === "ready";
+  // Remember if this row was processing when it mounted, so finishing can flash it once.
+  const wasProcessing = useRef(isProcessing(l));
+  const justFinished = ready && wasProcessing.current;
   const [renaming, setRenaming] = useState(false);
   const rename = (title: string) => postWrite(`/lectures/${l.id}`, { title }).then(onChange);
 
   return (
-    <li className="group flex items-start gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-hover">
+    <li className={`group flex items-start gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-hover ${justFinished ? "anim-flash" : ""}`}>
       <span className="mt-[5px] flex w-4 shrink-0 justify-center text-muted">
         <LectureDot lecture={l} />
       </span>

@@ -1,9 +1,11 @@
+import type React from "react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chapter, Quiz, QuizNotCovered, QuizQuestion } from "@lecture-lens/shared";
 import { formatTime, getJSON } from "../lib/api";
-import { playerBus, usePlayerTime } from "../lib/playerBus";
+import { playerBus, usePlayerSecond } from "../lib/playerBus";
 import { Icon } from "./Brand";
+import { useCountUp } from "../lib/motion";
 import { Markdown } from "./Markdown";
 
 const COUNTS = [3, 5, 10] as const;
@@ -58,7 +60,7 @@ function Setup({
   onStart: (quiz: Quiz) => void;
 }) {
   const queryClient = useQueryClient();
-  const time = usePlayerTime();
+  const time = usePlayerSecond();
   const [count, setCount] = useState<number>(5);
   const [notCovered, setNotCovered] = useState<string | null>(null);
   const { data: recent = [] } = useQuery({
@@ -95,8 +97,12 @@ function Setup({
 
   if (create.isPending) {
     return (
-      <div className="flex flex-col items-center px-6 py-16 text-center">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
+      <div className="anim-fade flex flex-col items-center px-6 py-16 text-center">
+        <span className="dots" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </span>
         <p className="mt-4 font-medium">Writing {count} questions on “{topic}”</p>
         <p className="mt-1 text-sm text-muted">From the board and what was said. About 15–20 seconds.</p>
       </div>
@@ -125,12 +131,13 @@ function Setup({
           </button>
         </div>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {suggestions.map((s) => (
+          {suggestions.map((s, i) => (
             <button
               key={s}
               type="button"
               onClick={() => start(s)}
-              className="rounded-full border border-line-strong px-2.5 py-1 text-xs text-muted transition-colors hover:border-faint hover:bg-hover hover:text-ink"
+              style={{ "--i": i } as React.CSSProperties}
+              className="anim-rise rounded-full border border-line-strong px-2.5 py-1 text-xs text-muted transition-colors hover:border-faint hover:bg-hover hover:text-ink"
             >
               {s}
             </button>
@@ -237,7 +244,10 @@ function Play({ quiz, onQuit, onFinish }: { quiz: Quiz; onQuit: () => void; onFi
         </span>
       </div>
 
-      <QuestionCard key={q.id} q={q} chosen={chosen} onChoose={choose} />
+      {/* Keyed by question: each one slides in from the right as the last one is done. */}
+      <div key={q.id} className="anim-slide-in">
+        <QuestionCard q={q} chosen={chosen} onChoose={choose} />
+      </div>
 
       {chosen !== undefined && (
         <div className="mt-4 flex justify-end">
@@ -276,10 +286,16 @@ function QuestionCard({ q, chosen, onChoose }: { q: QuizQuestion; chosen: number
               type="button"
               disabled={done}
               onClick={() => onChoose(i)}
-              className={`flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${style}`}
+              className={`flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-[background-color,border-color,opacity,transform] duration-200 active:scale-[0.99] ${style} ${
+                done && isChosen && !isAnswer ? "anim-shake" : ""
+              }`}
             >
-              <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded border border-line-strong text-[11px] text-faint tabular-nums">
-                {i + 1}
+              <span
+                className={`mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[11px] tabular-nums transition-colors duration-200 ${
+                  done && isAnswer ? "border-ok bg-ok text-white" : done && isChosen ? "border-bad bg-bad text-white" : "border-line-strong text-faint"
+                }`}
+              >
+                {done && isAnswer ? <span className="anim-check">✓</span> : done && isChosen ? "✗" : i + 1}
               </span>
               <span className="min-w-0">
                 <Markdown inline>{opt}</Markdown>
@@ -296,7 +312,7 @@ function QuestionCard({ q, chosen, onChoose }: { q: QuizQuestion; chosen: number
 
 function Feedback({ q, chosen, right }: { q: QuizQuestion; chosen: number; right: boolean }) {
   return (
-    <div className={`mt-4 rounded-lg px-3.5 py-3 text-sm ${right ? "bg-ok-soft" : "bg-warn-soft"}`}>
+    <div className={`anim-rise mt-4 rounded-lg px-3.5 py-3 text-sm ${right ? "bg-ok-soft" : "bg-warn-soft"}`} style={{ animationDelay: right ? "60ms" : "260ms" }}>
       {!right && q.misconceptions[chosen] && (
         <p className="mb-1.5 font-medium text-warn">
           <Markdown inline>{q.misconceptions[chosen]}</Markdown>
@@ -316,21 +332,24 @@ function Feedback({ q, chosen, right }: { q: QuizQuestion; chosen: number; right
 function Results({ quiz, answers, onRetry, onNew }: { quiz: Quiz; answers: number[]; onRetry: () => void; onNew: () => void }) {
   const score = quiz.questions.filter((q, i) => answers[i] === q.answerIdx).length;
   const total = quiz.questions.length;
+  const shown = useCountUp(score, 650);
   const verdict = score === total ? "All correct." : score >= total * 0.7 ? "Solid. Rewatch the ones you missed." : "Worth another look at the parts you missed.";
 
   return (
     <div className="p-4">
       <p className="text-xs text-muted">{quiz.topic}</p>
       <p className="display mt-2 text-[2rem] tabular-nums">
-        {score} <span className="text-faint">/ {total}</span>
+        {shown} <span className="text-faint">/ {total}</span>
       </p>
-      <p className="mt-1 text-sm text-muted">{verdict}</p>
+      <p className="anim-fade mt-1 text-sm text-muted" style={{ animationDelay: "500ms" }}>
+        {verdict}
+      </p>
 
       <ol className="mt-5 space-y-2">
         {quiz.questions.map((q, i) => {
           const ok = answers[i] === q.answerIdx;
           return (
-            <li key={q.id} className="flex items-start gap-2.5 rounded-lg border border-line px-3 py-2.5 text-sm">
+            <li key={q.id} style={{ "--i": i + 2 } as React.CSSProperties} className="anim-rise flex items-start gap-2.5 rounded-lg border border-line px-3 py-2.5 text-sm">
               <span className={`mt-0.5 shrink-0 font-semibold ${ok ? "text-ok" : "text-bad"}`} aria-label={ok ? "Correct" : "Wrong"}>
                 {ok ? "✓" : "✗"}
               </span>

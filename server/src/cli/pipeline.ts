@@ -1,5 +1,5 @@
 // Milestone 1 CLI: run the pipeline on a file and inspect the output by hand.
-//   npm run pipeline -- run <video.mp4> [--title "..."] [--module <id>]
+//   npm run pipeline -- run <video.mp4 | YouTube link> [--title "..."] [--module <id>]
 //   npm run pipeline -- rerun <lectureId> <stage>     (describe --force clears descriptions first)
 //   npm run pipeline -- inspect <lectureId>          (writes an HTML contact sheet)
 //   npm run pipeline -- tune <lectureId> [--tCut 12 --tGrad 6 --eps 1.5 --window 7]
@@ -15,6 +15,7 @@ import { runStages } from "../jobs/runStages.ts";
 import { extractFrame, loadSamples } from "../pipeline/frames.ts";
 import { selectFrames, type SelectOptions } from "../pipeline/frameSelect.ts";
 import { buildTimeline, formatTime } from "../pipeline/timeline.ts";
+import { parseSourceUrl } from "../pipeline/sources.ts";
 import { UPLOAD_FILE } from "../pipeline/types.ts";
 
 const { positionals, values } = parseArgs({
@@ -37,13 +38,19 @@ const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => `&${{ "&": "amp", 
 async function main() {
   switch (command) {
     case "run": {
-      if (!arg1) throw new Error("usage: run <video.mp4>");
+      if (!arg1) throw new Error("usage: run <video.mp4 | YouTube link>");
       db.prepare("INSERT OR IGNORE INTO modules (id, name) VALUES (?, ?)").run(values.module, "Development");
       const id = randomUUID().slice(0, 8);
       const dir = join(config.DATA_DIR, id);
       mkdirSync(dir, { recursive: true });
-      copyFileSync(resolve(arg1), join(dir, UPLOAD_FILE));
-      db.prepare("INSERT INTO lectures (id, moduleId, title) VALUES (?, ?, ?)").run(id, values.module, values.title ?? basename(arg1));
+      if (/^https?:\/\//i.test(arg1)) {
+        // A YouTube link: ingest downloads it, and the video's own name becomes the title.
+        if (!parseSourceUrl(arg1)) throw new Error("That isn't a YouTube video link");
+        db.prepare("INSERT INTO lectures (id, moduleId, title, sourceUrl) VALUES (?, ?, ?, ?)").run(id, values.module, values.title ?? "", arg1);
+      } else {
+        copyFileSync(resolve(arg1), join(dir, UPLOAD_FILE));
+        db.prepare("INSERT INTO lectures (id, moduleId, title) VALUES (?, ?, ?)").run(id, values.module, values.title ?? basename(arg1));
+      }
       log(`lecture ${id}`);
       await runStages(db, id, { dataDir: config.DATA_DIR, log });
       log(`done. Inspect with: npm run pipeline -- inspect ${id}`);

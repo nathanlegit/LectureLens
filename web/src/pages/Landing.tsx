@@ -1,7 +1,9 @@
 import katex from "katex";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Link } from "wouter";
 import { Icon, Logo } from "../components/Brand";
+import { FadeImg } from "../components/Skeleton";
+import { useReveal } from "../lib/motion";
 
 /**
  * Public front page. Every example on it is real output from the demo lecture
@@ -32,6 +34,8 @@ function Stamp({ children }: { children: ReactNode }) {
 }
 
 const WRAP = "mx-auto w-full max-w-5xl px-5 sm:px-8";
+/** Stagger index for the hero's entrance. */
+const at = (i: number) => ({ "--i": i * 2 }) as CSSProperties;
 
 function Nav() {
   return (
@@ -56,14 +60,14 @@ function Nav() {
 function Hero() {
   return (
     <section className={`${WRAP} pt-16 sm:pt-24`}>
-      <h1 className="max-w-[17ch] text-[clamp(2.3rem,5.4vw,3.6rem)] leading-[1.06] font-semibold tracking-[-0.032em]">
+      <h1 style={at(0)} className="anim-rise max-w-[17ch] text-[clamp(2.3rem,5.4vw,3.6rem)] leading-[1.06] font-semibold tracking-[-0.032em]">
         Lecture recordings you can ask questions.
       </h1>
-      <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-muted">
+      <p style={at(1)} className="anim-rise mt-6 max-w-[34rem] text-lg leading-relaxed text-muted">
         Upload a recording. Lecture Lens transcribes what was said, reads what was written on the board, and answers your questions with the
         timestamp to rewatch.
       </p>
-      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div style={at(2)} className="anim-rise mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
         <Link href="/library" className="btn btn-primary btn-lg">
           Upload a lecture
         </Link>
@@ -72,8 +76,8 @@ function Hero() {
         </a>
       </div>
 
-      <figure className="mt-16 sm:mt-20">
-        <img
+      <figure style={{ ...at(3), animationDuration: "500ms" }} className="anim-rise mt-16 sm:mt-20">
+        <FadeImg
           src="/landing/lecture-view.jpg"
           alt="The Lecture Lens lecture view: the video on the left, the overview and timestamped chapters on the right."
           width={2880}
@@ -87,8 +91,9 @@ function Hero() {
 }
 
 function Section({ id, title, intro, children }: { id?: string; title: string; intro: ReactNode; children: ReactNode }) {
+  const ref = useReveal<HTMLElement>();
   return (
-    <section id={id} className={`${WRAP} scroll-mt-6 pt-24 sm:pt-32`}>
+    <section ref={ref} id={id} className={`reveal ${WRAP} scroll-mt-6 pt-24 sm:pt-32`}>
       <div className="grid gap-x-12 gap-y-8 border-t border-line pt-10 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div>
           <h2 className="text-[1.65rem] leading-tight font-semibold tracking-[-0.022em]">{title}</h2>
@@ -203,8 +208,9 @@ function Study() {
 }
 
 function Closing() {
+  const ref = useReveal<HTMLElement>();
   return (
-    <section className={`${WRAP} py-24 sm:py-32`}>
+    <section ref={ref} className={`reveal ${WRAP} py-24 sm:py-32`}>
       <div className="flex flex-col items-start justify-between gap-6 border-t border-line pt-10 sm:flex-row sm:items-center">
         <p className="text-[1.65rem] leading-tight font-semibold tracking-[-0.022em]">Try it on last week’s lecture.</p>
         <Link href="/library" className="btn btn-primary btn-lg">
