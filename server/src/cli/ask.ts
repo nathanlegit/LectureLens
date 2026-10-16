@@ -1,4 +1,4 @@
-// Milestone 2 CLI: ask a question about a processed lecture and see the cited answer.
+// Dev CLI: ask a question about a processed lecture and see the cited answer.
 //   npm run ask -- <lectureId> "question"     (--fresh clears the conversation first, --guide uses Guide me)
 import { parseArgs } from "node:util";
 import { config } from "../config.ts";

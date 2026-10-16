@@ -12,7 +12,7 @@ export type DB = Database.Database;
 const MIGRATIONS: ((db: DB) => void)[] = [
   // 1: initial schema. CREATE IF NOT EXISTS, so databases made before migrations existed adopt it as-is.
   (db) => db.exec(readFileSync(new URL("./schema.sql", import.meta.url), "utf8")),
-  // 2: teaching modes (PRD, Teaching approach).
+  // 2: teaching modes (docs/PRD.md, Teaching approach).
   (db) =>
     db.exec(`
       ALTER TABLE messages ADD COLUMN mode TEXT NOT NULL DEFAULT 'tell';

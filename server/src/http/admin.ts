@@ -28,5 +28,13 @@ export function adminRoutes(db: DB, dataDir: string) {
     }
   });
 
+  // Rerun the chapter stage of a finished lecture (after a prompt change). The job runner picks it
+  // up within a couple of seconds, since a lecture's status is the stage it is in.
+  admin.post("/lectures/:id/rechapter", (c) => {
+    const res = db.prepare("UPDATE lectures SET status = 'chapter', stageDone = 0, stageTotal = 0 WHERE id = ? AND status = 'ready'").run(c.req.param("id"));
+    if (res.changes === 0) return c.json({ error: "No finished lecture with that ID" }, 404);
+    return c.json({ ok: true });
+  });
+
   return admin;
 }

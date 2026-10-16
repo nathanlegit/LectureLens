@@ -47,6 +47,3 @@ export function usePlayerSelect<T>(select: (time: number) => T): T {
 export function usePlayerSecond(): number {
   return usePlayerSelect(Math.floor);
 }
-
-/** The current time without subscribing, for event handlers. */
-export const playerTimeNow = () => currentTime;

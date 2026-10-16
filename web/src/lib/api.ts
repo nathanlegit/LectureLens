@@ -41,13 +41,6 @@ export async function askStream(lectureId: string, question: string, mode: AskMo
   }
 }
 
-export async function postJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url, { method: "POST" });
-  const json = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(json?.error ?? `Request failed (${res.status})`);
-  return json as T;
-}
-
 export const frameUrl = (lectureId: string, frameId: string) => `/media/${lectureId}/frames/${frameId}.jpg`;
 
 export function formatTime(sec: number): string {

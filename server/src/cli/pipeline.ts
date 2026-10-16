@@ -1,4 +1,4 @@
-// Milestone 1 CLI: run the pipeline on a file and inspect the output by hand.
+// Dev CLI: run the pipeline on a file and inspect the output by hand.
 //   npm run pipeline -- run <video.mp4 | YouTube link> [--title "..."] [--module <id>]
 //   npm run pipeline -- rerun <lectureId> <stage>     (describe --force clears descriptions first)
 //   npm run pipeline -- inspect <lectureId>          (writes an HTML contact sheet)

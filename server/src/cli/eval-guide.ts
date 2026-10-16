@@ -1,4 +1,4 @@
-// Teaching eval for Guide me (PRD: Teaching approach). Runs each case as a fresh conversation in a
+// Teaching eval for Guide me (see docs/PRD.md, Teaching approach). Runs each case as a fresh conversation in a
 // throwaway copy of the database, then has Claude grade the replies against the rubric.
 //   npm run eval:guide            (Strang 18.06 lecture 1, id 554168f0; costs roughly $0.30-0.50)
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";

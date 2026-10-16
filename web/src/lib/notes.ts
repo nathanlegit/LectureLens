@@ -6,10 +6,11 @@ import { getJSON } from "./api";
 // would be shared by every visitor; per-browser notes keep each viewer's own.
 const PREFIX = "lecture-lens-notes:";
 
-/** The saved notes, or null when this browser has never saved any for the key. */
+/** The saved notes, or null when this browser has none for the key (blank counts as none). */
 function read(key: string): string | null {
   try {
-    return localStorage.getItem(PREFIX + key);
+    const saved = localStorage.getItem(PREFIX + key);
+    return saved?.trim() ? saved : null;
   } catch {
     return null;
   }

@@ -27,7 +27,7 @@ export function SummaryTab({ overview, chapters }: { overview: string | null; ch
                 <span className={`w-11 shrink-0 font-mono text-xs tabular-nums ${active ? "font-medium text-accent" : "text-faint"}`}>{formatTime(c.startSec)}</span>
                 <span className="font-medium">{c.title}</span>
               </button>
-              <Markdown className="mt-0.5 pl-14 text-muted">{c.summary}</Markdown>
+              <Markdown className="mt-0.5 pl-14 text-muted prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:text-ink">{c.summary}</Markdown>
             </li>
           );
         })}

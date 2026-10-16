@@ -79,7 +79,7 @@ export function EditableText({
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={() => void commit()}
-        className={`-mx-1 w-full min-w-0 rounded-md bg-hover px-1 outline-none ring-2 ring-accent-soft ${className}`}
+        className={`-mx-1 w-full min-w-0 rounded-md bg-hover px-1 outline-none ${className}`}
       />
     );
   }

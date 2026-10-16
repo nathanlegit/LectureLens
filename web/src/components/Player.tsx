@@ -99,6 +99,19 @@ export function Player({
     if (track) track.mode = prefs.captions ? "showing" : "hidden";
   }, [prefs]);
 
+  // Cues sit on the bottom line by default, behind the control bar: lift them clear of it.
+  const trackEl = useRef<HTMLTrackElement>(null);
+  useEffect(() => {
+    const el = trackEl.current;
+    if (!el) return;
+    const lift = () => {
+      for (const cue of Array.from(el.track.cues ?? [])) if (cue instanceof VTTCue) cue.line = -4;
+    };
+    lift();
+    el.addEventListener("load", lift);
+    return () => el.removeEventListener("load", lift);
+  }, [lectureId]);
+
   // Progress bar at 60 fps without re-rendering: write widths straight to the DOM.
   const paint = useCallback((sec: number) => {
     const d = video.current?.duration || 0;
@@ -284,7 +297,14 @@ export function Player({
         }}
         className={`block w-full ${fullscreen ? "h-full object-contain" : "aspect-video"}`}
       >
-        <track kind="captions" src={`/api/lectures/${lectureId}/captions.vtt`} srcLang="en" label="English" default />
+        <track
+          kind="captions"
+          src={`/api/lectures/${lectureId}/captions.vtt`}
+          srcLang="en"
+          label="English"
+          default
+          ref={trackEl}
+        />
       </video>
 
       {/* Big play button before the first play. */}
