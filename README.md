@@ -1,4 +1,4 @@
-# Lecture Lens
+# Lecture Lens (Honourable Mention)
 
 Lecture Lens reads the board, not just the transcript.
 
